@@ -4,9 +4,14 @@ import Header from "@/components/Header";
 import Dashboard from "@/components/Dashboard";
 import AddReceiptForm from "@/components/AddReceiptForm";
 import ReceiptsList from "@/components/ReceiptsList";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const Index = () => {
   const [receipts, setReceipts] = useState<ReceiptType[]>([]);
+  const [editingReceipt, setEditingReceipt] = useState<ReceiptType | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedYear, setSelectedYear] = useState("all");
 
   // Load receipts from localStorage on component mount
   useEffect(() => {
@@ -55,25 +60,73 @@ const Index = () => {
     setReceipts(prev => [...prev, newReceipt]);
   };
 
+  const handleUpdateReceipt = (updated: ReceiptType) => {
+    setReceipts(prev => prev.map(r => (r.id === updated.id ? updated : r)));
+    setEditingReceipt(null);
+  };
+
+  const handleDeleteReceipt = (id: string) => {
+    setReceipts(prev => prev.filter(r => r.id !== id));
+  };
+
+  const years = Array.from(new Set(receipts.map(r => r.date.slice(0, 4)))).sort().reverse();
+
+  const filteredReceipts = receipts.filter((r) => {
+    const matchesYear = selectedYear === "all" || r.date.startsWith(selectedYear);
+    const matchesSearch = r.organism.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesYear && matchesSearch;
+  });
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
       
-      <main className="container mx-auto px-4 py-8 space-y-8">
-        <Dashboard receipts={receipts} />
-        
-        <div className="grid gap-8 lg:grid-cols-2">
-          <div>
-            <AddReceiptForm onAddReceipt={handleAddReceipt} />
+        <main className="container mx-auto px-4 py-8 space-y-8">
+          <Dashboard receipts={filteredReceipts} selectedYear={selectedYear} />
+
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <Input
+              placeholder="Rechercher un organisme"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="max-w-md"
+            />
+            <Select value={selectedYear} onValueChange={setSelectedYear}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Année" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Toutes</SelectItem>
+                {years.map((year) => (
+                  <SelectItem key={year} value={year}>
+                    {year}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-          
-          <div>
-            <ReceiptsList receipts={receipts} />
+
+          <div className="grid gap-8 lg:grid-cols-2">
+            <div>
+              <AddReceiptForm
+                onAddReceipt={handleAddReceipt}
+                initialData={editingReceipt || undefined}
+                onUpdateReceipt={handleUpdateReceipt}
+                onCancelEdit={() => setEditingReceipt(null)}
+              />
+            </div>
+
+            <div>
+              <ReceiptsList
+                receipts={filteredReceipts}
+                onDeleteReceipt={handleDeleteReceipt}
+                onEditReceipt={(receipt) => setEditingReceipt(receipt)}
+              />
+            </div>
           </div>
-        </div>
-      </main>
-    </div>
-  );
-};
+        </main>
+      </div>
+    );
+  };
 
 export default Index;

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,49 +9,70 @@ import { useToast } from "@/hooks/use-toast";
 
 interface AddReceiptFormProps {
   onAddReceipt: (receipt: ReceiptType) => void;
+  initialData?: ReceiptType;
+  onUpdateReceipt?: (receipt: ReceiptType) => void;
+  onCancelEdit?: () => void;
 }
 
-const AddReceiptForm = ({ onAddReceipt }: AddReceiptFormProps) => {
-  const [isFormOpen, setIsFormOpen] = useState(false);
+const AddReceiptForm = ({ onAddReceipt, initialData, onUpdateReceipt, onCancelEdit }: AddReceiptFormProps) => {
+  const [isFormOpen, setIsFormOpen] = useState(!!initialData);
   const [formData, setFormData] = useState({
-    date: "",
-    organism: "",
-    amount: ""
+    date: initialData?.date || "",
+    organism: initialData?.organism || "",
+    amount: initialData?.amount ? initialData.amount.toString() : "",
   });
   const { toast } = useToast();
 
+  useEffect(() => {
+    if (initialData) {
+      setIsFormOpen(true);
+      setFormData({
+        date: initialData.date,
+        organism: initialData.organism,
+        amount: initialData.amount.toString(),
+      });
+    }
+  }, [initialData]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.date || !formData.organism || !formData.amount) {
       toast({
         title: "Champs manquants",
         description: "Veuillez remplir tous les champs obligatoires.",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
 
     const newReceipt: ReceiptType = {
-      id: Date.now().toString(),
+      id: initialData?.id || Date.now().toString(),
       date: formData.date,
       organism: formData.organism.trim(),
       amount: parseFloat(formData.amount),
-      createdAt: new Date().toISOString()
+      createdAt: initialData?.createdAt || new Date().toISOString(),
     };
 
-    onAddReceipt(newReceipt);
+    if (initialData && onUpdateReceipt) {
+      onUpdateReceipt(newReceipt);
+      toast({
+        title: "Reçu mis à jour !",
+        description: `Don de ${newReceipt.amount}€ à ${newReceipt.organism} modifié.`,
+      });
+    } else {
+      onAddReceipt(newReceipt);
+      toast({
+        title: "Reçu ajouté !",
+        description: `Don de ${newReceipt.amount}€ à ${newReceipt.organism} enregistré.`,
+      });
+    }
     setFormData({ date: "", organism: "", amount: "" });
     setIsFormOpen(false);
-    
-    toast({
-      title: "Reçu ajouté !",
-      description: `Don de ${newReceipt.amount}€ à ${newReceipt.organism} enregistré.`,
-    });
   };
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   if (!isFormOpen) {
@@ -83,7 +104,7 @@ const AddReceiptForm = ({ onAddReceipt }: AddReceiptFormProps) => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Camera className="h-5 w-5" />
-          Nouveau reçu fiscal
+          {initialData ? "Modifier le reçu fiscal" : "Nouveau reçu fiscal"}
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -130,12 +151,16 @@ const AddReceiptForm = ({ onAddReceipt }: AddReceiptFormProps) => {
 
           <div className="flex gap-3 pt-4">
             <Button type="submit" className="flex-1">
-              Enregistrer le reçu
+              {initialData ? "Mettre à jour" : "Enregistrer le reçu"}
             </Button>
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={() => setIsFormOpen(false)}
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setIsFormOpen(false);
+                setFormData({ date: "", organism: "", amount: "" });
+                if (initialData && onCancelEdit) onCancelEdit();
+              }}
               className="flex-1"
             >
               Annuler
