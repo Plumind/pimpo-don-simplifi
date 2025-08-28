@@ -3,6 +3,7 @@ export interface Receipt {
   date: string; // Format YYYY-MM-DD
   organism: string;
   amount: number;
+  photo?: string | null;
   createdAt: string;
 }
 

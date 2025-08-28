@@ -1,19 +1,39 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import { Receipt as ReceiptType } from "@/types/Receipt";
-import { Calendar, Building2, Euro, Trash, Pencil } from "lucide-react";
+import {
+  Calendar,
+  Building2,
+  Euro,
+  Trash,
+  Pencil,
+  Eye,
+  Camera,
+  ImageOff,
+  MoreVertical,
+} from "lucide-react";
+import { useRef } from "react";
 
 interface ReceiptsListProps {
   receipts: ReceiptType[];
   onDeleteReceipt: (id: string) => void;
   onEditReceipt: (receipt: ReceiptType) => void;
+  onUpdatePhoto: (id: string, photo: string | null) => void;
 }
 
-const ReceiptsList = ({ receipts, onDeleteReceipt, onEditReceipt }: ReceiptsListProps) => {
-  const sortedReceipts = [...receipts].sort((a, b) => 
+const ReceiptsList = ({ receipts, onDeleteReceipt, onEditReceipt, onUpdatePhoto }: ReceiptsListProps) => {
+  const sortedReceipts = [...receipts].sort((a, b) =>
     new Date(b.date).getTime() - new Date(a.date).getTime()
   );
+  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('fr-FR', {
@@ -21,6 +41,32 @@ const ReceiptsList = ({ receipts, onDeleteReceipt, onEditReceipt }: ReceiptsList
       month: 'long',
       year: 'numeric'
     });
+  };
+
+  const handlePhotoChange = (id: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const existing = receipts.find(r => r.id === id)?.photo;
+    if (existing && !confirm("Remplacer la photo existante ?")) {
+      e.target.value = "";
+      return;
+    }
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      onUpdatePhoto(id, reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleViewPhoto = (photo?: string | null) => {
+    if (photo) window.open(photo, '_blank');
+  };
+
+  const handleDeletePhoto = (id: string) => {
+    const existing = receipts.find(r => r.id === id)?.photo;
+    if (existing && confirm("Supprimer la photo ?")) {
+      onUpdatePhoto(id, null);
+    }
   };
 
   if (receipts.length === 0) {
@@ -62,24 +108,56 @@ const ReceiptsList = ({ receipts, onDeleteReceipt, onEditReceipt }: ReceiptsList
               </div>
 
               <div className="text-right space-y-2">
-                <div className="flex justify-end gap-2">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => onEditReceipt(receipt)}
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => {
-                      if (confirm("Supprimer ce reçu ?")) onDeleteReceipt(receipt.id);
-                    }}
-                  >
-                    <Trash className="h-4 w-4 text-destructive" />
-                  </Button>
-                </div>
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="hidden"
+                  ref={(el) => (fileInputRefs.current[receipt.id] = el)}
+                  onChange={(e) => handlePhotoChange(receipt.id, e)}
+                />
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon">
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem
+                      onClick={() => handleViewPhoto(receipt.photo)}
+                      disabled={!receipt.photo}
+                    >
+                      <Eye className="mr-2 h-4 w-4" />
+                      Voir la photo
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => fileInputRefs.current[receipt.id]?.click()}
+                    >
+                      <Camera className="mr-2 h-4 w-4" />
+                      {receipt.photo ? "Remplacer la photo" : "Prendre une photo"}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => handleDeletePhoto(receipt.id)}
+                      disabled={!receipt.photo}
+                    >
+                      <ImageOff className="mr-2 h-4 w-4 text-destructive" />
+                      Supprimer la photo
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => onEditReceipt(receipt)}>
+                      <Pencil className="mr-2 h-4 w-4" />
+                      Modifier
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => {
+                        if (confirm("Supprimer ce reçu ?")) onDeleteReceipt(receipt.id);
+                      }}
+                    >
+                      <Trash className="mr-2 h-4 w-4 text-destructive" />
+                      Supprimer
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
                 <div className="flex items-center gap-1">
                   <Euro className="h-4 w-4 text-muted-foreground" />
                   <span className="font-semibold text-lg">{receipt.amount.toLocaleString('fr-FR')} €</span>
