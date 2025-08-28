@@ -69,6 +69,10 @@ const Index = () => {
     setReceipts(prev => prev.filter(r => r.id !== id));
   };
 
+  const handleUpdateReceiptPhoto = (id: string, photo: string | null) => {
+    setReceipts(prev => prev.map(r => (r.id === id ? { ...r, photo: photo || undefined } : r)));
+  };
+
   const years = Array.from(new Set(receipts.map(r => r.date.slice(0, 4)))).sort().reverse();
 
   const filteredReceipts = receipts.filter((r) => {
@@ -121,6 +125,7 @@ const Index = () => {
                 receipts={filteredReceipts}
                 onDeleteReceipt={handleDeleteReceipt}
                 onEditReceipt={(receipt) => setEditingReceipt(receipt)}
+                onUpdatePhoto={handleUpdateReceiptPhoto}
               />
             </div>
           </div>

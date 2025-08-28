@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Receipt as ReceiptType } from "@/types/Receipt";
-import { Plus, Camera } from "lucide-react";
+import { Plus, Camera, ImageOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface AddReceiptFormProps {
@@ -21,6 +21,8 @@ const AddReceiptForm = ({ onAddReceipt, initialData, onUpdateReceipt, onCancelEd
     organism: initialData?.organism || "",
     amount: initialData?.amount ? initialData.amount.toString() : "",
   });
+  const [photo, setPhoto] = useState<string | null>(initialData?.photo || null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -31,6 +33,7 @@ const AddReceiptForm = ({ onAddReceipt, initialData, onUpdateReceipt, onCancelEd
         organism: initialData.organism,
         amount: initialData.amount.toString(),
       });
+      setPhoto(initialData.photo || null);
     }
   }, [initialData]);
 
@@ -51,6 +54,7 @@ const AddReceiptForm = ({ onAddReceipt, initialData, onUpdateReceipt, onCancelEd
       date: formData.date,
       organism: formData.organism.trim(),
       amount: parseFloat(formData.amount),
+      photo: photo || undefined,
       createdAt: initialData?.createdAt || new Date().toISOString(),
     };
 
@@ -68,11 +72,22 @@ const AddReceiptForm = ({ onAddReceipt, initialData, onUpdateReceipt, onCancelEd
       });
     }
     setFormData({ date: "", organism: "", amount: "" });
+    setPhoto(null);
     setIsFormOpen(false);
   };
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPhoto(reader.result as string);
+    };
+    reader.readAsDataURL(file);
   };
 
   if (!isFormOpen) {
@@ -149,6 +164,45 @@ const AddReceiptForm = ({ onAddReceipt, initialData, onUpdateReceipt, onCancelEd
             />
           </div>
 
+          <div className="space-y-2">
+            <Label>Photo du reçu</Label>
+            <div className="flex items-center gap-2">
+              {photo && (
+                <img
+                  src={photo}
+                  alt="Reçu"
+                  className="h-20 w-20 object-cover rounded"
+                />
+              )}
+              <Button
+                type="button"
+                variant="outline"
+                className="gap-2"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Camera className="h-4 w-4" />
+                {photo ? "Remplacer la photo" : "Prendre une photo"}
+              </Button>
+              {photo && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setPhoto(null)}
+                >
+                  <ImageOff className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={handlePhotoChange}
+            />
+          </div>
+
           <div className="flex gap-3 pt-4">
             <Button type="submit" className="flex-1">
               {initialData ? "Mettre à jour" : "Enregistrer le reçu"}
@@ -159,6 +213,7 @@ const AddReceiptForm = ({ onAddReceipt, initialData, onUpdateReceipt, onCancelEd
               onClick={() => {
                 setIsFormOpen(false);
                 setFormData({ date: "", organism: "", amount: "" });
+                setPhoto(null);
                 if (initialData && onCancelEdit) onCancelEdit();
               }}
               className="flex-1"

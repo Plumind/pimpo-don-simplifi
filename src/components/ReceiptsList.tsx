@@ -2,18 +2,21 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Receipt as ReceiptType } from "@/types/Receipt";
-import { Calendar, Building2, Euro, Trash, Pencil } from "lucide-react";
+import { Calendar, Building2, Euro, Trash, Pencil, Eye, Camera, ImageOff } from "lucide-react";
+import { useRef } from "react";
 
 interface ReceiptsListProps {
   receipts: ReceiptType[];
   onDeleteReceipt: (id: string) => void;
   onEditReceipt: (receipt: ReceiptType) => void;
+  onUpdatePhoto: (id: string, photo: string | null) => void;
 }
 
-const ReceiptsList = ({ receipts, onDeleteReceipt, onEditReceipt }: ReceiptsListProps) => {
-  const sortedReceipts = [...receipts].sort((a, b) => 
+const ReceiptsList = ({ receipts, onDeleteReceipt, onEditReceipt, onUpdatePhoto }: ReceiptsListProps) => {
+  const sortedReceipts = [...receipts].sort((a, b) =>
     new Date(b.date).getTime() - new Date(a.date).getTime()
   );
+  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('fr-FR', {
@@ -21,6 +24,32 @@ const ReceiptsList = ({ receipts, onDeleteReceipt, onEditReceipt }: ReceiptsList
       month: 'long',
       year: 'numeric'
     });
+  };
+
+  const handlePhotoChange = (id: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const existing = receipts.find(r => r.id === id)?.photo;
+    if (existing && !confirm("Remplacer la photo existante ?")) {
+      e.target.value = "";
+      return;
+    }
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      onUpdatePhoto(id, reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleViewPhoto = (photo?: string | null) => {
+    if (photo) window.open(photo, '_blank');
+  };
+
+  const handleDeletePhoto = (id: string) => {
+    const existing = receipts.find(r => r.id === id)?.photo;
+    if (existing && confirm("Supprimer la photo ?")) {
+      onUpdatePhoto(id, null);
+    }
   };
 
   if (receipts.length === 0) {
@@ -62,7 +91,38 @@ const ReceiptsList = ({ receipts, onDeleteReceipt, onEditReceipt }: ReceiptsList
               </div>
 
               <div className="text-right space-y-2">
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="hidden"
+                  ref={(el) => (fileInputRefs.current[receipt.id] = el)}
+                  onChange={(e) => handlePhotoChange(receipt.id, e)}
+                />
                 <div className="flex justify-end gap-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleViewPhoto(receipt.photo)}
+                    disabled={!receipt.photo}
+                  >
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => fileInputRefs.current[receipt.id]?.click()}
+                  >
+                    <Camera className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleDeletePhoto(receipt.id)}
+                    disabled={!receipt.photo}
+                  >
+                    <ImageOff className="h-4 w-4 text-destructive" />
+                  </Button>
                   <Button
                     variant="ghost"
                     size="icon"
