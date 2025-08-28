@@ -1,5 +1,7 @@
 # Welcome to your Lovable project
 
+Pour pimper votre déclaration d'impôts
+
 ## Project info
 
 **URL**: https://lovable.dev/projects/b783226a-f4a3-4d05-a186-0c80a00c9281
