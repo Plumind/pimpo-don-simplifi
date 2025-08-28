@@ -10,15 +10,15 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Receipt as ReceiptType } from "@/types/Receipt";
 import {
-  Calendar,
   Building2,
-  Euro,
-  Trash,
-  Pencil,
-  Eye,
+  Calendar,
   Camera,
+  Eye,
+  Euro,
   ImageOff,
   MoreVertical,
+  Pencil,
+  Trash,
 } from "lucide-react";
 import { useRef } from "react";
 
