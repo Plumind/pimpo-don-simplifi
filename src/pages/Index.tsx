@@ -6,12 +6,15 @@ import AddReceiptForm from "@/components/AddReceiptForm";
 import ReceiptsList from "@/components/ReceiptsList";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 const Index = () => {
   const [receipts, setReceipts] = useState<ReceiptType[]>([]);
   const [editingReceipt, setEditingReceipt] = useState<ReceiptType | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedYear, setSelectedYear] = useState("all");
+  const { toast } = useToast();
 
   // Load receipts from localStorage on component mount
   useEffect(() => {
@@ -81,6 +84,32 @@ const Index = () => {
     return matchesYear && matchesSearch;
   });
 
+  const handleDownloadPDF = () => {
+    if (filteredReceipts.length === 0) {
+      toast({
+        title: "Aucun reçu",
+        description: "Aucun reçu trouvé pour l'année sélectionnée.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const title = selectedYear === "all" ? "Toutes années" : `Année ${selectedYear}`;
+    const rows = filteredReceipts
+      .map(
+        (r) =>
+          `<tr><td>${new Date(r.date).toLocaleDateString('fr-FR')}</td><td>${r.organism}</td><td>${r.amount.toLocaleString('fr-FR')} €</td></tr>`
+      )
+      .join("");
+
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
+    printWindow.document.write(`<!DOCTYPE html><html><head><title>Reçus fiscaux ${title}</title><style>body{font-family:Arial,sans-serif;padding:20px;}table{width:100%;border-collapse:collapse;}th,td{border:1px solid #000;padding:8px;text-align:left;}h1{margin-bottom:20px;}</style></head><body><h1>Reçus fiscaux ${title}</h1><table><thead><tr><th>Date</th><th>Organisme</th><th>Montant</th></tr></thead><tbody>${rows}</tbody></table></body></html>`);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -95,19 +124,22 @@ const Index = () => {
               onChange={(e) => setSearchTerm(e.target.value)}
               className="max-w-md"
             />
-            <Select value={selectedYear} onValueChange={setSelectedYear}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Année" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Toutes</SelectItem>
-                {years.map((year) => (
-                  <SelectItem key={year} value={year}>
-                    {year}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex gap-2">
+              <Select value={selectedYear} onValueChange={setSelectedYear}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Année" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Toutes</SelectItem>
+                  {years.map((year) => (
+                    <SelectItem key={year} value={year}>
+                      {year}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button onClick={handleDownloadPDF}>Exporter PDF</Button>
+            </div>
           </div>
 
           <div className="grid gap-8 lg:grid-cols-2">
