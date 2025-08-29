@@ -63,7 +63,7 @@ const AddServiceForm = ({ onAdd, initialData, onUpdate, onCancelEdit }: AddServi
     if (formData.category === "childcare" && (!formData.childName || !formData.childBirthDate)) {
       toast({
         title: "Informations enfant manquantes",
-        description: "Nom et date de naissance de l'enfant requis pour la garde d'enfants.",
+        description: "Nom et date de naissance du ou des enfants requis pour la garde d'enfants.",
         variant: "destructive",
       });
       return;
@@ -245,7 +245,7 @@ const AddServiceForm = ({ onAdd, initialData, onUpdate, onCancelEdit }: AddServi
           {formData.category === "childcare" && (
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="childName">Nom de l'enfant *</Label>
+                <Label htmlFor="childName">Nom du ou des enfants *</Label>
                 <Input
                   id="childName"
                   type="text"
