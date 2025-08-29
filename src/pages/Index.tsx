@@ -131,6 +131,7 @@ const Index = () => {
       </style></head><body>
         <h1>Reçus fiscaux ${title}</h1>
         <p><strong>Montant total des dons :</strong> ${totalAmount.toLocaleString('fr-FR')} €</p>
+        <p>Le montant total des dons de l'année est à saisir dans la case 7UF de la déclaration d'impôts.</p>
         <p><strong>Réduction fiscale (66%) :</strong> ${taxReduction.toLocaleString('fr-FR')} €</p>
         <p>Document justificatif à présenter à l'administration fiscale en cas de contrôle.</p>
         <table><thead><tr><th>Date</th><th>Organisme</th><th>Montant</th></tr></thead><tbody>${rows}</tbody></table>
