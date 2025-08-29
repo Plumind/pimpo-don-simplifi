@@ -42,7 +42,7 @@ const ReceiptsList = ({ receipts, onDeleteReceipt, onEditReceipt, onUpdatePhoto 
   };
 
   const handleViewPhoto = (photo?: string | null) => {
-    if (photo) window.open(photo, '_blank');
+    if (photo) window.open(photo, '_blank', 'noopener,noreferrer');
   };
 
   const handleDeletePhoto = (id: string) => {
