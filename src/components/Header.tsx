@@ -22,6 +22,12 @@ const Header = () => {
               Aperçu
             </Link>
             <Link
+              to="/foyer"
+              className={`text-sm font-medium hover:underline ${location.pathname === '/foyer' ? 'text-primary' : 'text-foreground'}`}
+            >
+              Foyer fiscal
+            </Link>
+            <Link
               to="/donations"
               className={`text-sm font-medium hover:underline ${location.pathname === '/donations' ? 'text-primary' : 'text-foreground'}`}
             >
