@@ -19,9 +19,7 @@ const Dashboard = ({ receipts, selectedYear }: DashboardProps) => {
         <h2 className="text-3xl font-bold text-foreground mb-2">
           {displayYear === 'Toutes' ? 'Toutes années' : `Année ${displayYear}`}
         </h2>
-        <p className="text-muted-foreground">
-          Votre synthèse fiscale en temps réel
-        </p>
+        <p className="text-muted-foreground">Synthèse des dons 66%</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">

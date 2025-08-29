@@ -15,8 +15,24 @@ const Header = () => {
             </div>
           </div>
           <nav className="flex gap-4">
-            <Link to="/" className={`text-sm font-medium hover:underline ${location.pathname === '/' ? 'text-primary' : 'text-foreground'}`}>Dons 66%</Link>
-            <Link to="/services" className={`text-sm font-medium hover:underline ${location.pathname === '/services' ? 'text-primary' : 'text-foreground'}`}>Services à la personne</Link>
+            <Link
+              to="/"
+              className={`text-sm font-medium hover:underline ${location.pathname === '/' ? 'text-primary' : 'text-foreground'}`}
+            >
+              Aperçu
+            </Link>
+            <Link
+              to="/donations"
+              className={`text-sm font-medium hover:underline ${location.pathname === '/donations' ? 'text-primary' : 'text-foreground'}`}
+            >
+              Dons 66%
+            </Link>
+            <Link
+              to="/services"
+              className={`text-sm font-medium hover:underline ${location.pathname === '/services' ? 'text-primary' : 'text-foreground'}`}
+            >
+              Services à la personne
+            </Link>
           </nav>
         </div>
       </div>
