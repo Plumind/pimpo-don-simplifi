@@ -4,6 +4,8 @@ import Dashboard from "@/components/Dashboard";
 import ServicesDashboard from "@/components/ServicesDashboard";
 import { Receipt } from "@/types/Receipt";
 import { ServiceExpense } from "@/types/ServiceExpense";
+import { Household } from "@/types/Household";
+import { calculateParts, calculateIncomeTax } from "@/lib/tax";
 import {
   Select,
   SelectContent,
@@ -11,11 +13,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const Index = () => {
   const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [expenses, setExpenses] = useState<ServiceExpense[]>([]);
   const [selectedYear, setSelectedYear] = useState("all");
+  const [household, setHousehold] = useState<Household | null>(null);
 
   useEffect(() => {
     const storedReceipts = localStorage.getItem("pimpo-receipts");
@@ -35,6 +39,15 @@ const Index = () => {
         console.error("Error loading services from localStorage:", e);
       }
     }
+
+    const storedHousehold = localStorage.getItem("pimpo-household");
+    if (storedHousehold) {
+      try {
+        setHousehold(JSON.parse(storedHousehold));
+      } catch (e) {
+        console.error("Error loading household from localStorage:", e);
+      }
+    }
   }, []);
 
   const years = Array.from(
@@ -52,6 +65,29 @@ const Index = () => {
   const filteredExpenses = expenses.filter(
     (e) => selectedYear === "all" || e.date.startsWith(selectedYear)
   );
+
+  const totalDonations = filteredReceipts.reduce((sum, r) => sum + r.amount, 0);
+  const donationReduction = Math.round(totalDonations * 0.66);
+
+  let incomeTax = 0;
+  let reductionApplied = 0;
+  let taxAfter = 0;
+  let reductionPercent = 0;
+  let remainingPercent = 100;
+
+  if (household) {
+    const adults = Math.max(
+      1,
+      household.members.filter((m) => m.name || m.salary).length
+    );
+    const totalIncome = household.members.reduce((s, m) => s + (m.salary || 0), 0);
+    const parts = calculateParts(adults, household.children);
+    incomeTax = calculateIncomeTax(totalIncome, parts);
+    reductionApplied = Math.min(donationReduction, incomeTax);
+    taxAfter = incomeTax - reductionApplied;
+    reductionPercent = incomeTax ? (reductionApplied / incomeTax) * 100 : 0;
+    remainingPercent = 100 - reductionPercent;
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -79,6 +115,39 @@ const Index = () => {
             </SelectContent>
           </Select>
         </div>
+
+        {household ? (
+          <Card className="max-w-xl mx-auto">
+            <CardHeader>
+              <CardTitle>Impôt sur le revenu estimé</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <div className="text-2xl font-bold">
+                {incomeTax.toLocaleString("fr-FR")} €
+              </div>
+              <div className="text-sm text-muted-foreground">
+                Réduction par dons : {reductionApplied.toLocaleString("fr-FR")} €
+              </div>
+              <div className="h-4 w-full bg-secondary rounded overflow-hidden flex">
+                <div
+                  className="bg-success"
+                  style={{ width: `${reductionPercent}%` }}
+                />
+                <div
+                  className="bg-primary"
+                  style={{ width: `${remainingPercent}%` }}
+                />
+              </div>
+              <div className="text-sm text-muted-foreground">
+                Reste à payer : {taxAfter.toLocaleString("fr-FR")} €
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <p className="text-sm text-muted-foreground text-center">
+            Renseignez votre foyer fiscal pour estimer votre impôt.
+          </p>
+        )}
 
         <Dashboard receipts={filteredReceipts} selectedYear={selectedYear} />
         <p className="text-sm text-muted-foreground text-center">
