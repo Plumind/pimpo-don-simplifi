@@ -77,7 +77,7 @@ const ReceiptsList = ({ receipts, onDeleteReceipt, onEditReceipt, onUpdatePhoto 
             key={receipt.id}
             className="border border-border rounded-lg p-4 space-y-3 hover:bg-muted/30 transition-colors"
           >
-            <div className="flex justify-between items-start">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
               <div className="space-y-2 flex-1">
                 <div className="flex items-center gap-2">
                   <Building2 className="h-4 w-4 text-muted-foreground" />
@@ -90,7 +90,7 @@ const ReceiptsList = ({ receipts, onDeleteReceipt, onEditReceipt, onUpdatePhoto 
                 </div>
               </div>
 
-              <div className="text-right space-y-2">
+              <div className="space-y-2 sm:text-right">
                 <input
                   type="file"
                   accept="image/*"
@@ -99,7 +99,7 @@ const ReceiptsList = ({ receipts, onDeleteReceipt, onEditReceipt, onUpdatePhoto 
                   ref={(el) => (fileInputRefs.current[receipt.id] = el)}
                   onChange={(e) => handlePhotoChange(receipt.id, e)}
                 />
-                <div className="flex justify-end gap-2">
+                <div className="grid grid-cols-3 gap-2 sm:flex sm:justify-end">
                   <Button
                     variant="ghost"
                     size="icon"
@@ -140,11 +140,11 @@ const ReceiptsList = ({ receipts, onDeleteReceipt, onEditReceipt, onUpdatePhoto 
                     <Trash className="h-4 w-4 text-destructive" />
                   </Button>
                 </div>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 sm:justify-end">
                   <Euro className="h-4 w-4 text-muted-foreground" />
                   <span className="font-semibold text-lg">{receipt.amount.toLocaleString('fr-FR')} €</span>
                 </div>
-                <Badge variant="secondary" className="text-xs bg-success-light text-success">
+                <Badge variant="secondary" className="text-xs bg-success-light text-success sm:ml-auto">
                   -{Math.round(receipt.amount * 0.66)} € d'impôt
                 </Badge>
               </div>
