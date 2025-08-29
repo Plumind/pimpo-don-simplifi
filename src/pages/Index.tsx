@@ -95,6 +95,9 @@ const Index = () => {
     }
 
     const title = selectedYear === "all" ? "Toutes années" : `Année ${selectedYear}`;
+    const totalAmount = filteredReceipts.reduce((sum, r) => sum + r.amount, 0);
+    const taxReduction = Math.round(totalAmount * 0.66);
+
     const rows = filteredReceipts
       .map(
         (r) =>
@@ -102,9 +105,37 @@ const Index = () => {
       )
       .join("");
 
+    const photosHtml = filteredReceipts
+      .filter((r) => r.photo)
+      .map(
+        (r, i) =>
+          `<div class="receipt-photo"><h3>Reçu ${i + 1} - ${r.organism} (${new Date(r.date).toLocaleDateString('fr-FR')})</h3><img src="${r.photo}" alt="Reçu ${i + 1}" /></div>`
+      )
+      .join("");
+
+    const photosSection = photosHtml
+      ? `<div class="page-break"></div><h2>Photos des reçus fiscaux</h2>${photosHtml}`
+      : "";
+
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
-    printWindow.document.write(`<!DOCTYPE html><html><head><title>Reçus fiscaux ${title}</title><style>body{font-family:Arial,sans-serif;padding:20px;}table{width:100%;border-collapse:collapse;}th,td{border:1px solid #000;padding:8px;text-align:left;}h1{margin-bottom:20px;}</style></head><body><h1>Reçus fiscaux ${title}</h1><table><thead><tr><th>Date</th><th>Organisme</th><th>Montant</th></tr></thead><tbody>${rows}</tbody></table></body></html>`);
+    printWindow.document.write(`<!DOCTYPE html><html><head><title>Reçus fiscaux ${title}</title><style>
+        body{font-family:Arial,sans-serif;padding:20px;}
+        table{width:100%;border-collapse:collapse;margin-top:20px;}
+        th,td{border:1px solid #000;padding:8px;text-align:left;}
+        h1{margin-bottom:10px;}
+        h2{margin-top:40px;}
+        img{max-width:100%;height:auto;margin-top:8px;}
+        .receipt-photo{margin-bottom:20px;}
+        @media print { .page-break { page-break-before: always; } }
+      </style></head><body>
+        <h1>Reçus fiscaux ${title}</h1>
+        <p><strong>Montant total des dons :</strong> ${totalAmount.toLocaleString('fr-FR')} €</p>
+        <p><strong>Réduction fiscale (66%) :</strong> ${taxReduction.toLocaleString('fr-FR')} €</p>
+        <p>Document justificatif à présenter à l'administration fiscale en cas de contrôle.</p>
+        <table><thead><tr><th>Date</th><th>Organisme</th><th>Montant</th></tr></thead><tbody>${rows}</tbody></table>
+        ${photosSection}
+      </body></html>`);
     printWindow.document.close();
     printWindow.focus();
     printWindow.print();
