@@ -83,6 +83,12 @@ const AddReceiptForm = ({ onAddReceipt, initialData, onUpdateReceipt, onCancelEd
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    if (photo && !confirm("Remplacer la photo existante ?")) {
+      e.target.value = "";
+      return;
+    }
+
     const reader = new FileReader();
     reader.onloadend = () => {
       setPhoto(reader.result as string);
