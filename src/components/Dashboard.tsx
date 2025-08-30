@@ -8,7 +8,6 @@ interface DashboardProps {
 }
 
 const Dashboard = ({ receipts, selectedYear }: DashboardProps) => {
-  const displayYear = selectedYear === 'all' ? 'Toutes' : selectedYear;
 
   const totalAmount = receipts.reduce((sum, receipt) => sum + receipt.amount, 0);
   const taxReduction = Math.round(totalAmount * 0.66);
@@ -17,7 +16,7 @@ const Dashboard = ({ receipts, selectedYear }: DashboardProps) => {
     <div className="space-y-6">
       <div className="text-center py-6">
         <h2 className="text-3xl font-bold text-foreground mb-2">
-          {displayYear === 'Toutes' ? 'Toutes années' : `Année ${displayYear}`}
+          Année {selectedYear}
         </h2>
         <p className="text-muted-foreground">Synthèse des dons 66%</p>
       </div>
@@ -31,7 +30,7 @@ const Dashboard = ({ receipts, selectedYear }: DashboardProps) => {
             <CardContent>
               <div className="text-2xl font-bold">{receipts.length}</div>
               <p className="text-xs text-muted-foreground">
-                reçu{receipts.length > 1 ? 's' : ''} {displayYear === 'Toutes' ? 'au total' : 'cette année'}
+                reçu{receipts.length > 1 ? 's' : ''} cette année
               </p>
             </CardContent>
           </Card>

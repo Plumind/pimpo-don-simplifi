@@ -8,7 +8,6 @@ interface ServicesDashboardProps {
 }
 
 const ServicesDashboard = ({ expenses, selectedYear }: ServicesDashboardProps) => {
-  const displayYear = selectedYear === 'all' ? 'Toutes' : selectedYear;
   const net = (e: ServiceExpense) => e.amount - e.aids;
 
   const homeTotal = expenses
@@ -32,7 +31,7 @@ const ServicesDashboard = ({ expenses, selectedYear }: ServicesDashboardProps) =
     <div className="space-y-6">
       <div className="text-center py-6">
         <h2 className="text-3xl font-bold text-foreground mb-2">
-          {displayYear === 'Toutes' ? 'Toutes années' : `Année ${displayYear}`}
+          Année {selectedYear}
         </h2>
         <p className="text-muted-foreground">Synthèse des services à la personne</p>
       </div>
