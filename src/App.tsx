@@ -8,6 +8,7 @@ import Donations from "./pages/Donations";
 import Services from "./pages/Services";
 import NotFound from "./pages/NotFound";
 import HouseholdPage from "./pages/Household";
+import MobileNav from "./components/MobileNav";
 
 const queryClient = new QueryClient();
 
@@ -25,6 +26,7 @@ const App = () => (
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
+        <MobileNav />
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

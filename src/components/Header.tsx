@@ -14,7 +14,7 @@ const Header = () => {
               <p className="text-sm text-muted-foreground">Pour pimper votre déclaration d'impôts</p>
             </div>
           </div>
-          <nav className="flex gap-4">
+          <nav className="hidden gap-4 sm:flex">
             <Link
               to="/"
               className={`text-sm font-medium hover:underline ${location.pathname === '/' ? 'text-primary' : 'text-foreground'}`}
