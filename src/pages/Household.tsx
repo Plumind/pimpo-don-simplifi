@@ -17,7 +17,7 @@ const HouseholdPage = () => {
   });
 
   useEffect(() => {
-    const stored = localStorage.getItem("pimpo-household");
+    const stored = localStorage.getItem("pimpots-household");
     if (stored) {
       try {
         setData(JSON.parse(stored));
@@ -44,7 +44,7 @@ const HouseholdPage = () => {
   };
 
   const handleSave = () => {
-    localStorage.setItem("pimpo-household", JSON.stringify(data));
+    localStorage.setItem("pimpots-household", JSON.stringify(data));
     toast({ title: "Foyer sauvegardé" });
   };
 
