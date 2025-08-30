@@ -22,7 +22,7 @@ const Index = () => {
   const [household, setHousehold] = useState<Household | null>(null);
 
   useEffect(() => {
-    const storedReceipts = localStorage.getItem("pimpo-receipts");
+    const storedReceipts = localStorage.getItem("pimpots-receipts");
     if (storedReceipts) {
       try {
         setReceipts(JSON.parse(storedReceipts));
@@ -31,7 +31,7 @@ const Index = () => {
       }
     }
 
-    const storedServices = localStorage.getItem("pimpo-services");
+    const storedServices = localStorage.getItem("pimpots-services");
     if (storedServices) {
       try {
         setExpenses(JSON.parse(storedServices));
@@ -40,7 +40,7 @@ const Index = () => {
       }
     }
 
-    const storedHousehold = localStorage.getItem("pimpo-household");
+    const storedHousehold = localStorage.getItem("pimpots-household");
     if (storedHousehold) {
       try {
         setHousehold(JSON.parse(storedHousehold));

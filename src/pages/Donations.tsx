@@ -24,7 +24,7 @@ const Donations = () => {
 
   // Load receipts from localStorage on component mount
   useEffect(() => {
-    const storedReceipts = localStorage.getItem('pimpo-receipts');
+    const storedReceipts = localStorage.getItem('pimpots-receipts');
     if (storedReceipts) {
       try {
         setReceipts(JSON.parse(storedReceipts));
@@ -62,7 +62,7 @@ const Donations = () => {
 
   // Save receipts to localStorage whenever receipts change
   useEffect(() => {
-    localStorage.setItem('pimpo-receipts', JSON.stringify(receipts));
+    localStorage.setItem('pimpots-receipts', JSON.stringify(receipts));
   }, [receipts]);
 
   const handleAddReceipt = (newReceipt: ReceiptType) => {

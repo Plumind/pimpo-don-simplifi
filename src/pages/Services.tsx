@@ -17,7 +17,7 @@ const Services = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    const stored = localStorage.getItem('pimpo-services');
+    const stored = localStorage.getItem('pimpots-services');
     if (stored) {
       try {
         setExpenses(JSON.parse(stored));
@@ -28,7 +28,7 @@ const Services = () => {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('pimpo-services', JSON.stringify(expenses));
+    localStorage.setItem('pimpots-services', JSON.stringify(expenses));
   }, [expenses]);
 
   const handleAdd = (exp: ServiceExpense) => setExpenses(prev => [...prev, exp]);
