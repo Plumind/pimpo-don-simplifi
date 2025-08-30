@@ -43,7 +43,8 @@ const Index = () => {
     const storedHousehold = localStorage.getItem("pimpots-household");
     if (storedHousehold) {
       try {
-        setHousehold(JSON.parse(storedHousehold));
+        const parsed: Household = JSON.parse(storedHousehold);
+        setHousehold({ status: "marie", ...parsed });
       } catch (e) {
         console.error("Error loading household from localStorage:", e);
       }
@@ -76,10 +77,13 @@ const Index = () => {
   let remainingPercent = 100;
 
   if (household) {
-    const adults = Math.max(
-      1,
-      household.members.filter((m) => m.name || m.salary).length
-    );
+    const adults =
+      household.status === "concubinage"
+        ? 1
+        : Math.max(
+            1,
+            household.members.filter((m) => m.name || m.salary).length
+          );
     const totalIncome = household.members.reduce((s, m) => s + (m.salary || 0), 0);
     const parts = calculateParts(adults, household.children);
     incomeTax = calculateIncomeTax(totalIncome, parts);
