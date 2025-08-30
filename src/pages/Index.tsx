@@ -18,7 +18,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 const Index = () => {
   const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [expenses, setExpenses] = useState<ServiceExpense[]>([]);
-  const [selectedYear, setSelectedYear] = useState("all");
+  const currentYear = new Date().getFullYear().toString();
+  const [selectedYear, setSelectedYear] = useState(currentYear);
   const [household, setHousehold] = useState<Household | null>(null);
 
   useEffect(() => {
@@ -55,17 +56,14 @@ const Index = () => {
     new Set([
       ...receipts.map((r) => r.date.slice(0, 4)),
       ...expenses.map((e) => e.date.slice(0, 4)),
+      currentYear,
     ])
   )
     .sort()
     .reverse();
 
-  const filteredReceipts = receipts.filter(
-    (r) => selectedYear === "all" || r.date.startsWith(selectedYear)
-  );
-  const filteredExpenses = expenses.filter(
-    (e) => selectedYear === "all" || e.date.startsWith(selectedYear)
-  );
+  const filteredReceipts = receipts.filter((r) => r.date.startsWith(selectedYear));
+  const filteredExpenses = expenses.filter((e) => e.date.startsWith(selectedYear));
 
   const totalDonations = filteredReceipts.reduce((sum, r) => sum + r.amount, 0);
   const donationReduction = Math.round(totalDonations * 0.66);
@@ -110,7 +108,6 @@ const Index = () => {
               <SelectValue placeholder="Année" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Toutes</SelectItem>
               {years.map((year) => (
                 <SelectItem key={year} value={year}>
                   {year}

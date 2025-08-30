@@ -13,7 +13,8 @@ const Services = () => {
   const [expenses, setExpenses] = useState<ServiceExpense[]>([]);
   const [editing, setEditing] = useState<ServiceExpense | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedYear, setSelectedYear] = useState("all");
+  const currentYear = new Date().getFullYear().toString();
+  const [selectedYear, setSelectedYear] = useState(currentYear);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -41,10 +42,10 @@ const Services = () => {
     setExpenses(prev => prev.map(e => e.id === id ? { ...e, photo: photo || undefined } : e));
   };
 
-  const years = Array.from(new Set(expenses.map(r => r.date.slice(0,4)))).sort().reverse();
+  const years = Array.from(new Set([...expenses.map(r => r.date.slice(0,4)), currentYear])).sort().reverse();
 
   const filtered = expenses.filter((e) => {
-    const matchesYear = selectedYear === "all" || e.date.startsWith(selectedYear);
+    const matchesYear = e.date.startsWith(selectedYear);
     const text = `${e.provider} ${e.nature}`.toLowerCase();
     const matchesSearch = text.includes(searchTerm.toLowerCase());
     return matchesYear && matchesSearch;
@@ -60,7 +61,7 @@ const Services = () => {
       return;
     }
 
-    const title = selectedYear === "all" ? "Toutes années" : `Année ${selectedYear}`;
+    const title = `Année ${selectedYear}`;
     const net = (e: ServiceExpense) => e.amount - e.aids;
     const homeTotal = filtered.filter(e => e.category === 'home').reduce((s,e)=>s+net(e),0);
     const homeCapped = Math.min(homeTotal, 12000);
@@ -139,7 +140,6 @@ const Services = () => {
                 <SelectValue placeholder="Année" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Toutes</SelectItem>
                 {years.map((year) => (
                   <SelectItem key={year} value={year}>
                     {year}

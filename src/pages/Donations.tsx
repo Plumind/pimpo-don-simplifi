@@ -19,7 +19,8 @@ const Donations = () => {
   const [receipts, setReceipts] = useState<ReceiptType[]>([]);
   const [editingReceipt, setEditingReceipt] = useState<ReceiptType | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedYear, setSelectedYear] = useState("all");
+  const currentYear = new Date().getFullYear().toString();
+  const [selectedYear, setSelectedYear] = useState(currentYear);
   const { toast } = useToast();
 
   // Load receipts from localStorage on component mount
@@ -82,10 +83,10 @@ const Donations = () => {
     setReceipts(prev => prev.map(r => (r.id === id ? { ...r, photo: photo || undefined } : r)));
   };
 
-  const years = Array.from(new Set(receipts.map(r => r.date.slice(0, 4)))).sort().reverse();
+  const years = Array.from(new Set([...receipts.map(r => r.date.slice(0, 4)), currentYear])).sort().reverse();
 
   const filteredReceipts = receipts.filter((r) => {
-    const matchesYear = selectedYear === "all" || r.date.startsWith(selectedYear);
+    const matchesYear = r.date.startsWith(selectedYear);
     const matchesSearch = r.organism.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesYear && matchesSearch;
   });
@@ -100,7 +101,7 @@ const Donations = () => {
       return;
     }
 
-    const title = selectedYear === "all" ? "Toutes années" : `Année ${selectedYear}`;
+    const title = `Année ${selectedYear}`;
     const totalAmount = filteredReceipts.reduce((sum, r) => sum + r.amount, 0);
     const taxReduction = Math.round(totalAmount * 0.66);
 
@@ -172,7 +173,6 @@ const Donations = () => {
                   <SelectValue placeholder="Année" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Toutes</SelectItem>
                   {years.map((year) => (
                     <SelectItem key={year} value={year}>
                       {year}
