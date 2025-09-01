@@ -5,12 +5,24 @@ import { TrendingUp, Euro, FileText } from "lucide-react";
 interface DashboardProps {
   receipts: ReceiptType[];
   selectedYear: string;
+  /**
+   * Tax reduction rate to display. Defaults to 66%.
+   */
+  taxRate?: number;
+  /**
+   * Optional custom tax reduction calculator.
+   * Useful for special cases like 75% donations with a cap.
+   */
+  computeTaxReduction?: (totalAmount: number) => number;
 }
 
-const Dashboard = ({ receipts, selectedYear }: DashboardProps) => {
+const Dashboard = ({ receipts, selectedYear, taxRate = 0.66, computeTaxReduction }: DashboardProps) => {
 
   const totalAmount = receipts.reduce((sum, receipt) => sum + receipt.amount, 0);
-  const taxReduction = Math.round(totalAmount * 0.66);
+  const taxReduction = Math.round(
+    computeTaxReduction ? computeTaxReduction(totalAmount) : totalAmount * taxRate
+  );
+  const percentage = Math.round(taxRate * 100);
 
   return (
     <div className="space-y-6">
@@ -18,7 +30,7 @@ const Dashboard = ({ receipts, selectedYear }: DashboardProps) => {
         <h2 className="text-3xl font-bold text-foreground mb-2">
           Année {selectedYear}
         </h2>
-        <p className="text-muted-foreground">Synthèse des dons 66%</p>
+        <p className="text-muted-foreground">Synthèse des dons {percentage}%</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
@@ -56,7 +68,7 @@ const Dashboard = ({ receipts, selectedYear }: DashboardProps) => {
           <CardContent>
             <div className="text-2xl font-bold text-success">{taxReduction.toLocaleString('fr-FR')} €</div>
             <p className="text-xs text-success/80">
-              réduction estimée (66%)
+              réduction estimée ({percentage}%)
             </p>
           </CardContent>
         </Card>
