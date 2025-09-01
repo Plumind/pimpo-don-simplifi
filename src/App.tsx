@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Donations from "./pages/Donations";
 import Services from "./pages/Services";
+import Schooling from "./pages/Schooling";
 import NotFound from "./pages/NotFound";
 import HouseholdPage from "./pages/Household";
 import MobileNav from "./components/MobileNav";
@@ -23,6 +24,7 @@ const App = () => (
           <Route path="/foyer" element={<HouseholdPage />} />
           <Route path="/donations" element={<Donations />} />
           <Route path="/services" element={<Services />} />
+          <Route path="/scolarite" element={<Schooling />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
