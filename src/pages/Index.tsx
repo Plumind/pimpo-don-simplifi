@@ -6,6 +6,7 @@ import { Receipt } from "@/types/Receipt";
 import { ServiceExpense } from "@/types/ServiceExpense";
 import { Student } from "@/types/Student";
 import { Household } from "@/types/Household";
+import { EnergyExpense } from "@/types/EnergyExpense";
 import { calculateParts, calculateIncomeTax } from "@/lib/tax";
 import {
   Select,
@@ -15,11 +16,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import EnergyDashboard from "@/components/EnergyDashboard";
 
 const Index = () => {
   const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [expenses, setExpenses] = useState<ServiceExpense[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
+  const [energy, setEnergy] = useState<EnergyExpense[]>([]);
   const currentYear = new Date().getFullYear().toString();
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [household, setHousehold] = useState<Household | null>(null);
@@ -52,6 +55,15 @@ const Index = () => {
       }
     }
 
+    const storedEnergy = localStorage.getItem("pimpots-energy");
+    if (storedEnergy) {
+      try {
+        setEnergy(JSON.parse(storedEnergy));
+      } catch (e) {
+        console.error("Error loading energy from localStorage:", e);
+      }
+    }
+
     const storedHousehold = localStorage.getItem("pimpots-household");
     if (storedHousehold) {
       try {
@@ -67,6 +79,7 @@ const Index = () => {
     new Set([
       ...receipts.map((r) => r.date.slice(0, 4)),
       ...expenses.map((e) => e.date.slice(0, 4)),
+      ...energy.map((e) => e.date.slice(0, 4)),
       currentYear,
     ])
   )
@@ -76,6 +89,7 @@ const Index = () => {
   const filteredReceipts = receipts.filter((r) => r.date.startsWith(selectedYear));
   const filteredExpenses = expenses.filter((e) => e.date.startsWith(selectedYear));
   const filteredStudents = students;
+  const filteredEnergy = energy.filter((e) => e.date.startsWith(selectedYear));
 
   const totalDonations = filteredReceipts.reduce((sum, r) => sum + r.amount, 0);
   const donationReduction = Math.round(totalDonations * 0.66);
@@ -219,6 +233,11 @@ const Index = () => {
         <ServicesDashboard expenses={filteredExpenses} selectedYear={selectedYear} />
         <p className="text-sm text-muted-foreground text-center">
           Reportez les services à domicile en case 7DB, la garde d'enfants hors domicile en case 7DF, et les montants par enfant en cases 7GA à 7GG.
+        </p>
+
+        <EnergyDashboard expenses={filteredEnergy} selectedYear={selectedYear} />
+        <p className="text-sm text-muted-foreground text-center">
+          Reportez les travaux d'isolation en case 7AR et les équipements économes en case 7AV.
         </p>
 
         {filteredStudents.length > 0 && (
