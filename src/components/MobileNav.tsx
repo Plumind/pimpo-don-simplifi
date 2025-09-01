@@ -1,4 +1,4 @@
-import { Home, Users, HandCoins, HandPlatter } from "lucide-react";
+import { Home, Users, HandCoins, HandPlatter, Zap } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 
 const MobileNav = () => {
@@ -8,6 +8,7 @@ const MobileNav = () => {
     { to: "/foyer", icon: Users, label: "Foyer fiscal" },
     { to: "/donations", icon: HandCoins, label: "Dons 66%" },
     { to: "/services", icon: HandPlatter, label: "Services" },
+    { to: "/energy", icon: Zap, label: "Énergie" },
   ];
 
   return (
