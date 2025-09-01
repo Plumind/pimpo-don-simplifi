@@ -45,7 +45,7 @@ const Index = () => {
     if (storedHousehold) {
       try {
         const parsed: Household = JSON.parse(storedHousehold);
-        setHousehold({ status: "marie", ...parsed });
+        setHousehold({ status: "marie", otherIncome: 0, ...parsed });
       } catch (e) {
         console.error("Error loading household from localStorage:", e);
       }
@@ -82,7 +82,9 @@ const Index = () => {
             1,
             household.members.filter((m) => m.name || m.salary).length
           );
-    const totalIncome = household.members.reduce((s, m) => s + (m.salary || 0), 0);
+    const totalIncome =
+      household.members.reduce((s, m) => s + (m.salary || 0), 0) +
+      (household.otherIncome || 0);
     const parts = calculateParts(adults, household.children);
     incomeTax = calculateIncomeTax(totalIncome, parts);
     reductionApplied = Math.min(donationReduction, incomeTax);

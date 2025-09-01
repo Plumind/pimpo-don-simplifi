@@ -9,4 +9,5 @@ export interface Household {
   status: MaritalStatus; // Marital situation
   members: HouseholdMember[]; // Adults in the household
   children: number; // Number of dependent children
+  otherIncome: number; // Other annual household income
 }
