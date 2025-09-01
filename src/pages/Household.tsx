@@ -5,12 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "@/components/ui/chart";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, ReferenceLine } from "recharts";
+import { Slider } from "@/components/ui/slider";
 import { Household } from "@/types/Household";
 import { calculateParts, calculateTmi, taxBrackets } from "@/lib/tax";
 import { useToast } from "@/hooks/use-toast";
@@ -24,6 +19,7 @@ const HouseholdPage = () => {
       { name: "", salary: 0 },
     ],
     children: 0,
+    otherIncome: 0,
   });
 
   useEffect(() => {
@@ -31,7 +27,7 @@ const HouseholdPage = () => {
     if (stored) {
       try {
         const parsed = JSON.parse(stored);
-        setData({ status: "marie", ...parsed });
+        setData({ status: "marie", otherIncome: 0, ...parsed });
       } catch (e) {
         console.error("Error loading household from localStorage:", e);
       }
@@ -59,7 +55,9 @@ const HouseholdPage = () => {
     toast({ title: "Foyer sauvegardé" });
   };
 
-  const totalIncome = data.members.reduce((s, m) => s + (m.salary || 0), 0);
+  const totalIncome =
+    data.members.reduce((s, m) => s + (m.salary || 0), 0) +
+    (data.otherIncome || 0);
   const adults =
     data.status === "concubinage"
       ? 1
@@ -67,12 +65,13 @@ const HouseholdPage = () => {
   const parts = calculateParts(adults, data.children);
   const tmi = calculateTmi(totalIncome, parts);
   const taxable = totalIncome / parts;
-  const chartData = [
-    { income: 0, rate: 0 },
-    ...taxBrackets
-      .filter((b) => b.limit !== Infinity)
-      .map((b) => ({ income: b.limit, rate: b.rate * 100 })),
-  ];
+  const bracketIndex = taxBrackets.findIndex((b) => taxable <= b.limit);
+  const prevLimit = bracketIndex > 0 ? taxBrackets[bracketIndex - 1].limit : 0;
+  const currentBracket = taxBrackets[bracketIndex];
+  const minThreshold = prevLimit * parts;
+  const rawMax =
+    currentBracket.limit === Infinity ? Infinity : currentBracket.limit * parts;
+  const maxSlider = Number.isFinite(rawMax) ? rawMax : totalIncome * 2;
 
   return (
     <div className="min-h-screen bg-background">
@@ -115,6 +114,24 @@ const HouseholdPage = () => {
               </div>
             ))}
             <div className="space-y-1">
+              <Label htmlFor="other-income">Autres revenus annuels (€)</Label>
+              <Input
+                id="other-income"
+                type="number"
+                placeholder="5000"
+                value={data.otherIncome || ""}
+                onChange={(e) =>
+                  setData((prev) => ({
+                    ...prev,
+                    otherIncome: Number(e.target.value),
+                  }))
+                }
+              />
+              <p className="text-xs text-muted-foreground">
+                Revenus locatifs, pensions, etc.
+              </p>
+            </div>
+            <div className="space-y-1">
               <Label htmlFor="children">Nombre d'enfants à charge</Label>
               <Input
                 id="children"
@@ -155,40 +172,37 @@ const HouseholdPage = () => {
                 Sélectionnez votre statut pour le calcul des parts fiscales.
               </p>
             </div>
+            <div className="space-y-1 pt-2">
+              <p>Nombre de parts : {parts}</p>
+              <p>
+                Revenus totaux : {totalIncome.toLocaleString("fr-FR")} €
+              </p>
+            </div>
             {totalIncome > 0 && (
               <div className="space-y-4 pt-4">
                 <p className="text-center font-medium">
                   Taux marginal d'imposition : {(tmi * 100).toFixed(0)}%
                 </p>
-                <ChartContainer
-                  config={{ rate: { label: "TMI", color: "hsl(var(--primary))" } }}
-                  className="h-64"
-                >
-                  <LineChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis
-                      dataKey="income"
-                      tickFormatter={(v) => v.toLocaleString("fr-FR")}
-                      label={{ value: "Revenu par part (€)", position: "insideBottom", dy: 10 }}
-                    />
-                    <YAxis
-                      dataKey="rate"
-                      tickFormatter={(v) => `${v}%`}
-                      label={{ value: "TMI", angle: -90, position: "insideLeft" }}
-                    />
-                    <ReferenceLine x={taxable} stroke="red" strokeDasharray="3 3" />
-                    <Line
-                      type="stepAfter"
-                      dataKey="rate"
-                      stroke="var(--color-rate)"
-                      dot={false}
-                    />
-                    <ChartTooltip content={<ChartTooltipContent />} />
-                  </LineChart>
-                </ChartContainer>
-                <p className="text-xs text-muted-foreground text-center">
-                  Ligne rouge : votre revenu par part fiscale.
-                </p>
+                <div>
+                  <Slider
+                    value={[Math.min(totalIncome, maxSlider)]}
+                    min={minThreshold}
+                    max={maxSlider}
+                    step={1}
+                    disabled
+                  />
+                  <div className="flex justify-between text-xs text-muted-foreground mt-2">
+                    <span>{minThreshold.toLocaleString("fr-FR")} €</span>
+                    <span>
+                      {Number.isFinite(rawMax)
+                        ? `${rawMax.toLocaleString("fr-FR")} €`
+                        : "∞"}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground text-center mt-2">
+                    Revenu du foyer : {totalIncome.toLocaleString("fr-FR")} €
+                  </p>
+                </div>
               </div>
             )}
             <Button onClick={handleSave} className="w-full">
