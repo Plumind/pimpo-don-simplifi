@@ -4,6 +4,7 @@ import Dashboard from "@/components/Dashboard";
 import ServicesDashboard from "@/components/ServicesDashboard";
 import { Receipt } from "@/types/Receipt";
 import { ServiceExpense } from "@/types/ServiceExpense";
+import { Student } from "@/types/Student";
 import { Household } from "@/types/Household";
 import { calculateParts, calculateIncomeTax } from "@/lib/tax";
 import {
@@ -18,6 +19,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 const Index = () => {
   const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [expenses, setExpenses] = useState<ServiceExpense[]>([]);
+  const [students, setStudents] = useState<Student[]>([]);
   const currentYear = new Date().getFullYear().toString();
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [household, setHousehold] = useState<Household | null>(null);
@@ -38,6 +40,15 @@ const Index = () => {
         setExpenses(JSON.parse(storedServices));
       } catch (e) {
         console.error("Error loading services from localStorage:", e);
+      }
+    }
+
+    const storedSchooling = localStorage.getItem("pimpots-schooling");
+    if (storedSchooling) {
+      try {
+        setStudents(JSON.parse(storedSchooling));
+      } catch (e) {
+        console.error("Error loading schooling from localStorage:", e);
       }
     }
 
@@ -64,9 +75,24 @@ const Index = () => {
 
   const filteredReceipts = receipts.filter((r) => r.date.startsWith(selectedYear));
   const filteredExpenses = expenses.filter((e) => e.date.startsWith(selectedYear));
+  const filteredStudents = students;
 
   const totalDonations = filteredReceipts.reduce((sum, r) => sum + r.amount, 0);
   const donationReduction = Math.round(totalDonations * 0.66);
+  const schoolingTotals = filteredStudents.reduce(
+    (acc, s) => {
+      const map = {
+        college: { amount: 63, box: "7EA" },
+        lycee: { amount: 158, box: "7EC" },
+        superieur: { amount: 183, box: "7EF" },
+      } as const;
+      const info = map[s.level];
+      acc.total += info.amount;
+      acc.byBox[info.box] = (acc.byBox[info.box] || 0) + info.amount;
+      return acc;
+    },
+    { total: 0, byBox: {} as Record<string, number> }
+  );
 
   let incomeTax = 0;
   let reductionApplied = 0;
@@ -124,7 +150,7 @@ const Index = () => {
         <div className="text-center py-6">
           <h2 className="text-3xl font-bold text-foreground mb-2">Aperçu global</h2>
           <p className="text-muted-foreground">
-            Synthèse des dons 66% et des services à la personne
+            Synthèse des dons 66%, des services à la personne et de la scolarité
           </p>
         </div>
 
@@ -194,6 +220,31 @@ const Index = () => {
         <p className="text-sm text-muted-foreground text-center">
           Reportez les services à domicile en case 7DB, la garde d'enfants hors domicile en case 7DF, et les montants par enfant en cases 7GA à 7GG.
         </p>
+
+        {filteredStudents.length > 0 && (
+          <>
+            <Card className="max-w-xl mx-auto">
+              <CardHeader>
+                <CardTitle>Réduction scolarité</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <div className="text-2xl font-bold">
+                  {schoolingTotals.total.toLocaleString("fr-FR")} €
+                </div>
+                <ul className="text-sm text-muted-foreground">
+                  {Object.entries(schoolingTotals.byBox).map(([box, amt]) => (
+                    <li key={box}>
+                      Case {box} : {amt.toLocaleString("fr-FR")} €
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+            <p className="text-sm text-muted-foreground text-center">
+              Reportez les montants par enfant dans les cases 7EA, 7EC et 7EF.
+            </p>
+          </>
+        )}
       </main>
     </div>
   );
