@@ -30,10 +30,8 @@ const ServicesDashboard = ({ expenses, selectedYear }: ServicesDashboardProps) =
   return (
     <div className="space-y-6">
       <div className="text-center py-6">
-        <h2 className="text-3xl font-bold text-foreground mb-2">
-          Année {selectedYear}
-        </h2>
-        <p className="text-muted-foreground">Synthèse des services à la personne</p>
+        <h2 className="text-3xl font-bold text-foreground mb-2">Synthèse des services à la personne</h2>
+        <p className="text-muted-foreground">Année {selectedYear}</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">

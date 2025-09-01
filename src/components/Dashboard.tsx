@@ -16,9 +16,9 @@ const Dashboard = ({ receipts, selectedYear }: DashboardProps) => {
     <div className="space-y-6">
       <div className="text-center py-6">
         <h2 className="text-3xl font-bold text-foreground mb-2">
-          Année {selectedYear}
+          Synthèse des dons 66%
         </h2>
-        <p className="text-muted-foreground">Synthèse des dons 66%</p>
+        <p className="text-muted-foreground">Année {selectedYear}</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">

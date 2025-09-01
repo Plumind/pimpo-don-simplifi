@@ -18,8 +18,8 @@ const EnergyDashboard = ({ expenses, selectedYear }: EnergyDashboardProps) => {
   return (
     <div className="space-y-6">
       <div className="text-center py-6">
-        <h2 className="text-3xl font-bold text-foreground mb-2">Année {selectedYear}</h2>
-        <p className="text-muted-foreground">Synthèse transition énergétique</p>
+        <h2 className="text-3xl font-bold text-foreground mb-2">Synthèse transition énergétique</h2>
+        <p className="text-muted-foreground">Année {selectedYear}</p>
       </div>
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
