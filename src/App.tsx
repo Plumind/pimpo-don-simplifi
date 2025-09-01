@@ -7,6 +7,7 @@ import Index from "./pages/Index";
 import Donations from "./pages/Donations";
 import Services from "./pages/Services";
 import Schooling from "./pages/Schooling";
+import Energy from "./pages/Energy";
 import NotFound from "./pages/NotFound";
 import HouseholdPage from "./pages/Household";
 import MobileNav from "./components/MobileNav";
@@ -24,6 +25,7 @@ const App = () => (
           <Route path="/foyer" element={<HouseholdPage />} />
           <Route path="/donations" element={<Donations />} />
           <Route path="/services" element={<Services />} />
+          <Route path="/energie" element={<Energy />} />
           <Route path="/scolarite" element={<Schooling />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
