@@ -99,9 +99,12 @@ const Index = () => {
   let serviceCredit = 0;
   let taxAfterDonations = 0;
   let finalTax = 0;
-  let reductionPercent = 0;
-  let servicePercent = 0;
-  let remainingPercent = 100;
+  let totalCredits = 0;
+  let deductionPercent = 0;
+  let creditPercent = 0;
+  let payPercent = 0;
+  let refundPercent = 0;
+  let markerPercent = 0;
 
   if (household) {
     const adults =
@@ -138,9 +141,18 @@ const Index = () => {
     serviceCredit = Math.round(homeCapped * 0.5 + childTotalCapped * 0.5);
 
     finalTax = taxAfterDonations - serviceCredit;
-    reductionPercent = incomeTax ? (reductionApplied / incomeTax) * 100 : 0;
-    servicePercent = incomeTax ? (serviceCredit / incomeTax) * 100 : 0;
-    remainingPercent = Math.max(100 - reductionPercent - servicePercent, 0);
+
+    totalCredits = reductionApplied + serviceCredit;
+    const maxValue = Math.max(incomeTax, totalCredits);
+    deductionPercent = maxValue ? (reductionApplied / maxValue) * 100 : 0;
+    creditPercent = maxValue ? (serviceCredit / maxValue) * 100 : 0;
+    payPercent = maxValue
+      ? (Math.max(incomeTax - totalCredits, 0) / maxValue) * 100
+      : 0;
+    refundPercent = maxValue
+      ? (Math.max(totalCredits - incomeTax, 0) / maxValue) * 100
+      : 0;
+    markerPercent = maxValue ? (incomeTax / maxValue) * 100 : 0;
   }
 
   return (
@@ -184,19 +196,51 @@ const Index = () => {
               <div className="text-sm text-muted-foreground">
                 Crédit services à la personne : {serviceCredit.toLocaleString("fr-FR")} €
               </div>
-              <div className="h-4 w-full bg-secondary rounded overflow-hidden flex">
+              <div className="relative h-4 w-full bg-gray-200 rounded overflow-hidden">
+                <div className="flex h-full">
+                  <div
+                    className="bg-gray-400"
+                    style={{ width: `${deductionPercent}%` }}
+                  />
+                  <div
+                    className="bg-white border"
+                    style={{ width: `${creditPercent}%` }}
+                  />
+                  {payPercent > 0 && (
+                    <div
+                      className="bg-blue-500"
+                      style={{ width: `${payPercent}%` }}
+                    />
+                  )}
+                  {refundPercent > 0 && (
+                    <div
+                      className="bg-green-500"
+                      style={{ width: `${refundPercent}%` }}
+                    />
+                  )}
+                </div>
                 <div
-                  className="bg-success"
-                  style={{ width: `${reductionPercent}%` }}
+                  className="absolute top-0 bottom-0 border-l-2 border-black"
+                  style={{ left: `${markerPercent}%` }}
                 />
-                <div
-                  className="bg-accent"
-                  style={{ width: `${servicePercent}%` }}
-                />
-                <div
-                  className="bg-primary"
-                  style={{ width: `${remainingPercent}%` }}
-                />
+              </div>
+              <div className="flex flex-wrap justify-between text-xs text-muted-foreground pt-1">
+                <div className="flex items-center gap-1">
+                  <span className="w-3 h-3 bg-gray-400 rounded-sm" />
+                  <span>Déduction</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="w-3 h-3 bg-white border rounded-sm" />
+                  <span>Crédit</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="w-3 h-3 bg-blue-500 rounded-sm" />
+                  <span>Impôt dû</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="w-3 h-3 bg-green-500 rounded-sm" />
+                  <span>Remboursement</span>
+                </div>
               </div>
               <div className="text-sm text-muted-foreground">
                 {finalTax >= 0
