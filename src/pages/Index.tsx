@@ -2,8 +2,10 @@ import { useEffect, useState } from "react";
 import Header from "@/components/Header";
 import Dashboard from "@/components/Dashboard";
 import ServicesDashboard from "@/components/ServicesDashboard";
+import EnergyDashboard from "@/components/EnergyDashboard";
 import { Receipt } from "@/types/Receipt";
 import { ServiceExpense } from "@/types/ServiceExpense";
+import { EnergyExpense, energyRates } from "@/types/EnergyExpense";
 import { Household } from "@/types/Household";
 import { calculateParts, calculateIncomeTax } from "@/lib/tax";
 import {
@@ -18,6 +20,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 const Index = () => {
   const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [expenses, setExpenses] = useState<ServiceExpense[]>([]);
+  const [energy, setEnergy] = useState<EnergyExpense[]>([]);
   const currentYear = new Date().getFullYear().toString();
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [household, setHousehold] = useState<Household | null>(null);
@@ -41,6 +44,15 @@ const Index = () => {
       }
     }
 
+    const storedEnergy = localStorage.getItem("pimpots-energy");
+    if (storedEnergy) {
+      try {
+        setEnergy(JSON.parse(storedEnergy));
+      } catch (e) {
+        console.error("Error loading energy from localStorage:", e);
+      }
+    }
+
     const storedHousehold = localStorage.getItem("pimpots-household");
     if (storedHousehold) {
       try {
@@ -56,6 +68,7 @@ const Index = () => {
     new Set([
       ...receipts.map((r) => r.date.slice(0, 4)),
       ...expenses.map((e) => e.date.slice(0, 4)),
+      ...energy.map((e) => e.date.slice(0, 4)),
       currentYear,
     ])
   )
@@ -64,6 +77,7 @@ const Index = () => {
 
   const filteredReceipts = receipts.filter((r) => r.date.startsWith(selectedYear));
   const filteredExpenses = expenses.filter((e) => e.date.startsWith(selectedYear));
+  const filteredEnergy = energy.filter((e) => e.date.startsWith(selectedYear));
 
   const totalDonations = filteredReceipts.reduce((sum, r) => sum + r.amount, 0);
   const donationReduction = Math.round(totalDonations * 0.66);
@@ -71,10 +85,12 @@ const Index = () => {
   let incomeTax = 0;
   let reductionApplied = 0;
   let serviceCredit = 0;
+  let energyCredit = 0;
   let taxAfterDonations = 0;
   let finalTax = 0;
   let reductionPercent = 0;
   let servicePercent = 0;
+  let energyPercent = 0;
   let remainingPercent = 100;
 
   if (household) {
@@ -110,11 +126,18 @@ const Index = () => {
       0
     );
     serviceCredit = Math.round(homeCapped * 0.5 + childTotalCapped * 0.5);
+    energyCredit = Math.round(
+      filteredEnergy.reduce((sum, e) => sum + e.amount * energyRates[e.code], 0)
+    );
 
-    finalTax = taxAfterDonations - serviceCredit;
+    finalTax = taxAfterDonations - serviceCredit - energyCredit;
     reductionPercent = incomeTax ? (reductionApplied / incomeTax) * 100 : 0;
     servicePercent = incomeTax ? (serviceCredit / incomeTax) * 100 : 0;
-    remainingPercent = Math.max(100 - reductionPercent - servicePercent, 0);
+    energyPercent = incomeTax ? (energyCredit / incomeTax) * 100 : 0;
+    remainingPercent = Math.max(
+      100 - reductionPercent - servicePercent - energyPercent,
+      0
+    );
   }
 
   return (
@@ -124,7 +147,7 @@ const Index = () => {
         <div className="text-center py-6">
           <h2 className="text-3xl font-bold text-foreground mb-2">Aperçu global</h2>
           <p className="text-muted-foreground">
-            Synthèse des dons 66% et des services à la personne
+            Synthèse des dons 66%, des services à la personne et de l'énergie
           </p>
         </div>
 
@@ -158,6 +181,9 @@ const Index = () => {
               <div className="text-sm text-muted-foreground">
                 Crédit services à la personne : {serviceCredit.toLocaleString("fr-FR")} €
               </div>
+              <div className="text-sm text-muted-foreground">
+                Crédit transition énergétique : {energyCredit.toLocaleString("fr-FR")} €
+              </div>
               <div className="h-4 w-full bg-secondary rounded overflow-hidden flex">
                 <div
                   className="bg-success"
@@ -166,6 +192,10 @@ const Index = () => {
                 <div
                   className="bg-accent"
                   style={{ width: `${servicePercent}%` }}
+                />
+                <div
+                  className="bg-destructive"
+                  style={{ width: `${energyPercent}%` }}
                 />
                 <div
                   className="bg-primary"
@@ -193,6 +223,11 @@ const Index = () => {
         <ServicesDashboard expenses={filteredExpenses} selectedYear={selectedYear} />
         <p className="text-sm text-muted-foreground text-center">
           Reportez les services à domicile en case 7DB, la garde d'enfants hors domicile en case 7DF, et les montants par enfant en cases 7GA à 7GG.
+        </p>
+
+        <EnergyDashboard expenses={filteredEnergy} selectedYear={selectedYear} />
+        <p className="text-sm text-muted-foreground text-center">
+          Reportez les montants en cases 7AR à 7AV.
         </p>
       </main>
     </div>

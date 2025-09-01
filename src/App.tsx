@@ -8,6 +8,7 @@ import Donations from "./pages/Donations";
 import Services from "./pages/Services";
 import NotFound from "./pages/NotFound";
 import HouseholdPage from "./pages/Household";
+import Energy from "./pages/Energy";
 import MobileNav from "./components/MobileNav";
 
 const queryClient = new QueryClient();
@@ -23,6 +24,7 @@ const App = () => (
           <Route path="/foyer" element={<HouseholdPage />} />
           <Route path="/donations" element={<Donations />} />
           <Route path="/services" element={<Services />} />
+          <Route path="/energy" element={<Energy />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

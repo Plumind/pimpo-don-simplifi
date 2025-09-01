@@ -39,6 +39,12 @@ const Header = () => {
             >
               Services à la personne
             </Link>
+            <Link
+              to="/energy"
+              className={`text-sm font-medium hover:underline ${location.pathname === '/energy' ? 'text-primary' : 'text-foreground'}`}
+            >
+              Énergie
+            </Link>
           </nav>
         </div>
       </div>
