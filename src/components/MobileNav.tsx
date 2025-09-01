@@ -6,7 +6,7 @@ const MobileNav = () => {
   const items = [
     { to: "/", icon: Home, label: "Aperçu" },
     { to: "/foyer", icon: Users, label: "Foyer fiscal" },
-    { to: "/donations", icon: HandCoins, label: "Dons 66%" },
+    { to: "/donations", icon: HandCoins, label: "Dons" },
     { to: "/services", icon: HandPlatter, label: "Services" },
     { to: "/scolarite", icon: GraduationCap, label: "Scolarité" },
   ];

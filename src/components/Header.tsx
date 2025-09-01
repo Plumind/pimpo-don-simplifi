@@ -31,7 +31,7 @@ const Header = () => {
               to="/donations"
               className={`text-sm font-medium hover:underline ${location.pathname === '/donations' ? 'text-primary' : 'text-foreground'}`}
             >
-              Dons 66%
+              Dons
             </Link>
             <Link
               to="/services"
