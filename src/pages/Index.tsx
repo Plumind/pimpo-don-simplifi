@@ -70,8 +70,11 @@ const Index = () => {
 
   let incomeTax = 0;
   let reductionApplied = 0;
-  let taxAfter = 0;
+  let serviceCredit = 0;
+  let taxAfterDonations = 0;
+  let finalTax = 0;
   let reductionPercent = 0;
+  let servicePercent = 0;
   let remainingPercent = 100;
 
   if (household) {
@@ -88,9 +91,30 @@ const Index = () => {
     const parts = calculateParts(adults, household.children);
     incomeTax = calculateIncomeTax(totalIncome, parts);
     reductionApplied = Math.min(donationReduction, incomeTax);
-    taxAfter = incomeTax - reductionApplied;
+    taxAfterDonations = incomeTax - reductionApplied;
+
+    const net = (e: ServiceExpense) => e.amount - e.aids;
+    const homeTotal = filteredExpenses
+      .filter((e) => e.category === "home")
+      .reduce((sum, e) => sum + net(e), 0);
+    const homeCapped = Math.min(homeTotal, 12000);
+    const childMap: Record<string, number> = {};
+    filteredExpenses
+      .filter((e) => e.category === "childcare")
+      .forEach((e) => {
+        const key = `${e.childName || ""}|${e.childBirthDate || ""}`;
+        childMap[key] = (childMap[key] || 0) + net(e);
+      });
+    const childTotalCapped = Object.values(childMap).reduce(
+      (s, amt) => s + Math.min(amt, 3500),
+      0
+    );
+    serviceCredit = Math.round(homeCapped * 0.5 + childTotalCapped * 0.5);
+
+    finalTax = taxAfterDonations - serviceCredit;
     reductionPercent = incomeTax ? (reductionApplied / incomeTax) * 100 : 0;
-    remainingPercent = 100 - reductionPercent;
+    servicePercent = incomeTax ? (serviceCredit / incomeTax) * 100 : 0;
+    remainingPercent = Math.max(100 - reductionPercent - servicePercent, 0);
   }
 
   return (
@@ -131,10 +155,17 @@ const Index = () => {
               <div className="text-sm text-muted-foreground">
                 Réduction par dons : {reductionApplied.toLocaleString("fr-FR")} €
               </div>
+              <div className="text-sm text-muted-foreground">
+                Crédit services à la personne : {serviceCredit.toLocaleString("fr-FR")} €
+              </div>
               <div className="h-4 w-full bg-secondary rounded overflow-hidden flex">
                 <div
                   className="bg-success"
                   style={{ width: `${reductionPercent}%` }}
+                />
+                <div
+                  className="bg-accent"
+                  style={{ width: `${servicePercent}%` }}
                 />
                 <div
                   className="bg-primary"
@@ -142,7 +173,9 @@ const Index = () => {
                 />
               </div>
               <div className="text-sm text-muted-foreground">
-                Reste à payer : {taxAfter.toLocaleString("fr-FR")} €
+                {finalTax >= 0
+                  ? `Reste à payer : ${finalTax.toLocaleString("fr-FR")} €`
+                  : `Remboursement : ${Math.abs(finalTax).toLocaleString("fr-FR")} €`}
               </div>
             </CardContent>
           </Card>
