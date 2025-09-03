@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import Header from "@/components/Header";
 import Dashboard from "@/components/Dashboard";
 import ServicesDashboard from "@/components/ServicesDashboard";
+import OtherDashboard from "@/components/OtherDashboard";
 import { Receipt } from "@/types/Receipt";
 import { ServiceExpense } from "@/types/ServiceExpense";
 import { Student } from "@/types/Student";
@@ -20,6 +21,7 @@ import EnergyDashboard from "@/components/EnergyDashboard";
 
 const Index = () => {
   const [receipts, setReceipts] = useState<Receipt[]>([]);
+  const [otherReceipts, setOtherReceipts] = useState<Receipt[]>([]);
   const [expenses, setExpenses] = useState<ServiceExpense[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [energy, setEnergy] = useState<EnergyExpense[]>([]);
@@ -34,6 +36,15 @@ const Index = () => {
         setReceipts(JSON.parse(storedReceipts));
       } catch (e) {
         console.error("Error loading receipts from localStorage:", e);
+      }
+    }
+
+    const storedOther = localStorage.getItem("pimpots-other-receipts");
+    if (storedOther) {
+      try {
+        setOtherReceipts(JSON.parse(storedOther));
+      } catch (e) {
+        console.error("Error loading other receipts from localStorage:", e);
       }
     }
 
@@ -78,6 +89,7 @@ const Index = () => {
   const years = Array.from(
     new Set([
       ...receipts.map((r) => r.date.slice(0, 4)),
+      ...otherReceipts.map((r) => r.date.slice(0, 4)),
       ...expenses.map((e) => e.date.slice(0, 4)),
       ...energy.map((e) => e.date.slice(0, 4)),
       currentYear,
@@ -87,12 +99,18 @@ const Index = () => {
     .reverse();
 
   const filteredReceipts = receipts.filter((r) => r.date.startsWith(selectedYear));
+  const filteredOtherReceipts = otherReceipts.filter((r) => r.date.startsWith(selectedYear));
   const filteredExpenses = expenses.filter((e) => e.date.startsWith(selectedYear));
   const filteredStudents = students;
   const filteredEnergy = energy.filter((e) => e.date.startsWith(selectedYear));
 
-  const totalDonations = filteredReceipts.reduce((sum, r) => sum + r.amount, 0);
-  const donationReduction = Math.round(totalDonations * 0.66);
+  const totalDonations66 = filteredReceipts.reduce((sum, r) => sum + r.amount, 0);
+  const totalDonations75 = filteredOtherReceipts.reduce((sum, r) => sum + r.amount, 0);
+  const base75 = Math.min(totalDonations75, 1000);
+  const excess75 = Math.max(totalDonations75 - 1000, 0);
+  const total7UF = totalDonations66 + excess75;
+  const total7UD = base75;
+  const donationReduction = Math.round(total7UF * 0.66 + total7UD * 0.75);
   const schoolingTotals = filteredStudents.reduce(
     (acc, s) => {
       const map = {
@@ -176,7 +194,8 @@ const Index = () => {
         <div className="text-center py-6">
           <h2 className="text-3xl font-bold text-foreground mb-2">Aperçu global</h2>
           <p className="text-muted-foreground">
-            Synthèse des dons 66%, des services à la personne et de la scolarité
+            Synthèse des dons 66% et 75%, des services à la personne et de la
+            scolarité
           </p>
         </div>
 
@@ -270,9 +289,18 @@ const Index = () => {
         )}
 
         <Dashboard receipts={filteredReceipts} selectedYear={selectedYear} />
-        <p className="text-sm text-muted-foreground text-center">
-          Le montant total des dons de l'année est à déclarer en case 7UF.
-        </p>
+        <OtherDashboard
+          receipts={filteredOtherReceipts}
+          selectedYear={selectedYear}
+        />
+        <div className="text-sm text-muted-foreground text-center flex flex-col sm:flex-row sm:justify-center gap-2">
+          <span>
+            Dons 66% : {total7UF.toLocaleString("fr-FR")} € → case 7UF
+          </span>
+          <span>
+            Dons 75% : {total7UD.toLocaleString("fr-FR")} € → case 7UD
+          </span>
+        </div>
 
         <ServicesDashboard expenses={filteredExpenses} selectedYear={selectedYear} />
         <p className="text-sm text-muted-foreground text-center">
