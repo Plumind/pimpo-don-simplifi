@@ -64,7 +64,10 @@ const Schooling = () => {
       <main className="container mx-auto px-4 py-8 pb-24 space-y-8">
         <div className="text-center py-6">
           <h2 className="text-3xl font-bold text-foreground mb-2">Scolarité</h2>
-          <p className="text-muted-foreground">Réduction pour frais de scolarité</p>
+          <p className="text-muted-foreground">
+            Réduction pour frais de scolarité au collège, au lycée ou en études
+            supérieures
+          </p>
         </div>
 
         <Card className="max-w-xl mx-auto">
