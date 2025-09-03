@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import EnergyDashboard from "@/components/EnergyDashboard";
 
 const Index = () => {
@@ -104,6 +104,13 @@ const Index = () => {
   const filteredStudents = students;
   const filteredEnergy = energy.filter((e) => e.date.startsWith(selectedYear));
 
+  const isolationTotal = filteredEnergy
+    .filter((e) => e.category === "isolation")
+    .reduce((sum, e) => sum + e.amount, 0);
+  const equipmentTotal = filteredEnergy
+    .filter((e) => e.category === "equipment")
+    .reduce((sum, e) => sum + e.amount, 0);
+
   const totalDonations66 = filteredReceipts.reduce((sum, r) => sum + r.amount, 0);
   const totalDonations75 = filteredOtherReceipts.reduce((sum, r) => sum + r.amount, 0);
   const base75 = Math.min(totalDonations75, 1000);
@@ -126,12 +133,17 @@ const Index = () => {
     { total: 0, byBox: {} as Record<string, number> }
   );
 
+  const schoolingReduction = schoolingTotals.total;
+  const energyCredit = Math.round((isolationTotal + equipmentTotal) * 0.3);
   let incomeTax = 0;
+  let donationReductionApplied = 0;
+  let schoolingReductionApplied = 0;
   let reductionApplied = 0;
   let serviceCredit = 0;
-  let taxAfterDonations = 0;
+  let taxAfterDeductions = 0;
   let finalTax = 0;
-  let totalCredits = 0;
+  let totalDeductions = 0;
+  let totalRefunds = 0;
   let deductionPercent = 0;
   let creditPercent = 0;
   let payPercent = 0;
@@ -151,8 +163,11 @@ const Index = () => {
       (household.otherIncome || 0);
     const parts = calculateParts(adults, household.children);
     incomeTax = calculateIncomeTax(totalIncome, parts);
-    reductionApplied = Math.min(donationReduction, incomeTax);
-    taxAfterDonations = incomeTax - reductionApplied;
+    donationReductionApplied = Math.min(donationReduction, incomeTax);
+    const afterDonations = incomeTax - donationReductionApplied;
+    schoolingReductionApplied = Math.min(schoolingReduction, afterDonations);
+    reductionApplied = donationReductionApplied + schoolingReductionApplied;
+    taxAfterDeductions = incomeTax - reductionApplied;
 
     const net = (e: ServiceExpense) => e.amount - e.aids;
     const homeTotal = filteredExpenses
@@ -172,17 +187,19 @@ const Index = () => {
     );
     serviceCredit = Math.round(homeCapped * 0.5 + childTotalCapped * 0.5);
 
-    finalTax = taxAfterDonations - serviceCredit;
+    const totalCreditApplied = serviceCredit + energyCredit;
+    finalTax = taxAfterDeductions - totalCreditApplied;
 
-    totalCredits = reductionApplied + serviceCredit;
-    const maxValue = Math.max(incomeTax, totalCredits);
-    deductionPercent = maxValue ? (reductionApplied / maxValue) * 100 : 0;
-    creditPercent = maxValue ? (serviceCredit / maxValue) * 100 : 0;
+    totalDeductions = reductionApplied;
+    totalRefunds = totalCreditApplied;
+    const maxValue = Math.max(incomeTax, totalDeductions + totalRefunds);
+    deductionPercent = maxValue ? (totalDeductions / maxValue) * 100 : 0;
+    creditPercent = maxValue ? (totalRefunds / maxValue) * 100 : 0;
     payPercent = maxValue
-      ? (Math.max(incomeTax - totalCredits, 0) / maxValue) * 100
+      ? (Math.max(incomeTax - (totalDeductions + totalRefunds), 0) / maxValue) * 100
       : 0;
     refundPercent = maxValue
-      ? (Math.max(totalCredits - incomeTax, 0) / maxValue) * 100
+      ? (Math.max(totalDeductions + totalRefunds - incomeTax, 0) / maxValue) * 100
       : 0;
     markerPercent = maxValue ? (incomeTax / maxValue) * 100 : 0;
   }
@@ -193,10 +210,7 @@ const Index = () => {
       <main className="container mx-auto px-4 py-8 pb-24 space-y-8">
         <div className="text-center py-6">
           <h2 className="text-3xl font-bold text-foreground mb-2">Aperçu global</h2>
-          <p className="text-muted-foreground">
-            Synthèse des dons 66% et 75%, des services à la personne et de la
-            scolarité
-          </p>
+          <p className="text-muted-foreground">Année {selectedYear}</p>
         </div>
 
         <div className="flex justify-center">
@@ -218,16 +232,29 @@ const Index = () => {
           <Card className="max-w-xl mx-auto">
             <CardHeader>
               <CardTitle>Impôt sur le revenu estimé</CardTitle>
+              <CardDescription>Année {selectedYear}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">
               <div className="text-2xl font-bold">
                 {incomeTax.toLocaleString("fr-FR")} €
               </div>
               <div className="text-sm text-muted-foreground">
-                Réduction par dons : {reductionApplied.toLocaleString("fr-FR")} €
+                Réduction dons : {donationReductionApplied.toLocaleString("fr-FR")} €
+              </div>
+              <div className="text-sm text-muted-foreground">
+                Réduction scolarité : {schoolingReductionApplied.toLocaleString("fr-FR")} €
               </div>
               <div className="text-sm text-muted-foreground">
                 Crédit services à la personne : {serviceCredit.toLocaleString("fr-FR")} €
+              </div>
+              <div className="text-sm text-muted-foreground">
+                Crédit transition énergétique : {energyCredit.toLocaleString("fr-FR")} €
+              </div>
+              <div className="text-sm text-muted-foreground">
+                Total déductions : {totalDeductions.toLocaleString("fr-FR")} €
+              </div>
+              <div className="text-sm text-muted-foreground">
+                Total remboursements : {totalRefunds.toLocaleString("fr-FR")} €
               </div>
               <div className="relative h-4 w-full bg-gray-200 rounded overflow-hidden">
                 <div className="flex h-full">
@@ -316,7 +343,8 @@ const Index = () => {
           <>
             <Card className="max-w-xl mx-auto">
               <CardHeader>
-                <CardTitle>Réduction scolarité</CardTitle>
+                <CardTitle>Synthèse scolarité</CardTitle>
+                <CardDescription>Année {selectedYear}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-2">
                 <div className="text-2xl font-bold">
@@ -329,6 +357,7 @@ const Index = () => {
                     </li>
                   ))}
                 </ul>
+                <p className="text-sm text-muted-foreground">Déduction d'impôt</p>
               </CardContent>
             </Card>
             <p className="text-sm text-muted-foreground text-center">

@@ -64,6 +64,7 @@ const OtherDashboard = ({ receipts, selectedYear }: DashboardProps) => {
           </CardContent>
         </Card>
       </div>
+      <p className="text-center text-sm text-muted-foreground">Déduction d'impôt</p>
     </div>
   );
 };

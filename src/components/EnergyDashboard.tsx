@@ -50,6 +50,7 @@ const EnergyDashboard = ({ expenses, selectedYear }: EnergyDashboardProps) => {
           </CardContent>
         </Card>
       </div>
+      <p className="text-center text-sm text-muted-foreground">Crédit d'impôt (remboursement)</p>
     </div>
   );
 };

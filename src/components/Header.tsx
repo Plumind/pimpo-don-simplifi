@@ -3,17 +3,18 @@ import { Link, useLocation } from "react-router-dom";
 
 const Header = () => {
   const location = useLocation();
+  const currentYear = new Date().getFullYear();
   return (
     <header className="bg-card border-b border-border">
       <div className="container mx-auto px-4 py-6">
         <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
+          <Link to="/" className="flex items-center gap-3">
             <img src={logo} alt="Logo Pimpôts" className="h-12 w-12" />
             <div>
               <h1 className="text-2xl font-bold text-foreground">Pimpôts</h1>
-              <p className="text-sm text-muted-foreground">Pour pimper votre déclaration d'impôts</p>
+              <p className="text-sm text-muted-foreground">Année {currentYear}</p>
             </div>
-          </div>
+          </Link>
           <nav className="hidden gap-4 sm:flex">
             <Link
               to="/"
