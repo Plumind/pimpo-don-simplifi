@@ -10,9 +10,10 @@ interface ReceiptsListProps {
   onDeleteReceipt: (id: string) => void;
   onEditReceipt: (receipt: ReceiptType) => void;
   onUpdatePhoto: (id: string, photo: string | null) => void;
+  taxRate?: number;
 }
 
-const ReceiptsList = ({ receipts, onDeleteReceipt, onEditReceipt, onUpdatePhoto }: ReceiptsListProps) => {
+const ReceiptsList = ({ receipts, onDeleteReceipt, onEditReceipt, onUpdatePhoto, taxRate = 0.66 }: ReceiptsListProps) => {
   const sortedReceipts = [...receipts].sort((a, b) =>
     new Date(b.date).getTime() - new Date(a.date).getTime()
   );
@@ -145,7 +146,7 @@ const ReceiptsList = ({ receipts, onDeleteReceipt, onEditReceipt, onUpdatePhoto 
                   <span className="font-semibold text-lg">{receipt.amount.toLocaleString('fr-FR')} €</span>
                 </div>
                 <Badge variant="secondary" className="text-xs bg-success-light text-success sm:ml-auto">
-                  -{Math.round(receipt.amount * 0.66)} € d'impôt
+                  -{Math.round(receipt.amount * taxRate)} € d'impôt
                 </Badge>
               </div>
             </div>
