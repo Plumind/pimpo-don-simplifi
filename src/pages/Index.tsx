@@ -357,9 +357,11 @@ const Index = () => {
                     </li>
                   ))}
                 </ul>
-                <p className="text-sm text-muted-foreground">Déduction d'impôt</p>
               </CardContent>
             </Card>
+            <p className="text-sm text-muted-foreground text-center">
+              Déduction d'impôt
+            </p>
             <p className="text-sm text-muted-foreground text-center">
               Reportez les montants par enfant dans les cases 7EA, 7EC et 7EF.
             </p>
