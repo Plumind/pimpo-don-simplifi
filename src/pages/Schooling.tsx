@@ -117,36 +117,39 @@ const Schooling = () => {
         </Card>
 
         {students.length > 0 && (
-          <Card className="max-w-xl mx-auto">
-            <CardHeader>
-              <CardTitle>Enfants scolarisés</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {students.map((s) => {
-                const lvl = LEVELS.find((l) => l.value === s.level)!;
-                return (
-                  <div key={s.id} className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">{s.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        Né le {new Date(s.birthDate).toLocaleDateString("fr-FR")} – {lvl.label} (case {lvl.box})
-                      </p>
+          <>
+            <Card className="max-w-xl mx-auto">
+              <CardHeader>
+                <CardTitle>Enfants scolarisés</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {students.map((s) => {
+                  const lvl = LEVELS.find((l) => l.value === s.level)!;
+                  return (
+                    <div key={s.id} className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium">{s.name}</p>
+                        <p className="text-sm text-muted-foreground">
+                          Né le {new Date(s.birthDate).toLocaleDateString("fr-FR")} – {lvl.label} (case {lvl.box})
+                        </p>
+                      </div>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => removeStudent(s.id)}
+                      >
+                        Supprimer
+                      </Button>
                     </div>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => removeStudent(s.id)}
-                    >
-                      Supprimer
-                    </Button>
-                  </div>
-                );
-              })}
-              <div className="font-bold">
-                Total réduction : {total.toLocaleString("fr-FR")} €
-              </div>
-            </CardContent>
-          </Card>
+                  );
+                })}
+                <div className="font-bold">
+                  Total réduction : {total.toLocaleString("fr-FR")} €
+                </div>
+              </CardContent>
+            </Card>
+            <p className="text-sm text-muted-foreground text-center">Déduction d'impôt</p>
+          </>
         )}
       </main>
     </div>
