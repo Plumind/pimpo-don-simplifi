@@ -127,8 +127,8 @@ const Index = () => {
   const schoolingTotals = filteredStudents.reduce(
     (acc, s) => {
       const map = {
-        college: { amount: 63, box: "7EA" },
-        lycee: { amount: 158, box: "7EC" },
+        college: { amount: 61, box: "7EA" },
+        lycee: { amount: 153, box: "7EC" },
         superieur: { amount: 183, box: "7EF" },
       } as const;
       const info = map[s.level];
