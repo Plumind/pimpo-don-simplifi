@@ -10,7 +10,7 @@ const Donations = () => (
       <Tabs defaultValue="66" className="space-y-8">
         <TabsList className="grid w-full max-w-md grid-cols-2 mx-auto">
           <TabsTrigger value="66">Dons 66%</TabsTrigger>
-          <TabsTrigger value="other">Autres dons</TabsTrigger>
+          <TabsTrigger value="other">Dons 75%</TabsTrigger>
         </TabsList>
         <TabsContent value="66">
           <Donations66 />

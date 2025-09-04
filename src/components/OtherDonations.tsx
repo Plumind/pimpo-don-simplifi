@@ -80,6 +80,23 @@ const OtherDonations = () => {
     return matchesYear && matchesSearch;
   });
 
+  const calculateTaxReductions = (list: ReceiptType[]) => {
+    let remaining = 1000;
+    const reductions: Record<string, number> = {};
+    const chronological = [...list].sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
+    chronological.forEach((r) => {
+      const amount75 = Math.min(r.amount, remaining);
+      const amount66 = r.amount - amount75;
+      reductions[r.id] = Math.round(amount75 * 0.75 + amount66 * 0.66);
+      remaining -= amount75;
+    });
+    return reductions;
+  };
+
+  const taxReductions = calculateTaxReductions(filteredReceipts);
+
   const handleDownloadPDF = () => {
     if (filteredReceipts.length === 0) {
       toast({
@@ -189,6 +206,7 @@ const OtherDonations = () => {
             onEditReceipt={(receipt) => setEditingReceipt(receipt)}
             onUpdatePhoto={handleUpdateReceiptPhoto}
             taxRate={0.75}
+            taxReductions={taxReductions}
           />
         </div>
       </div>
