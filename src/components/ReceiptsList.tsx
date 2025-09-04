@@ -11,11 +11,12 @@ interface ReceiptsListProps {
   onEditReceipt: (receipt: ReceiptType) => void;
   onUpdatePhoto: (id: string, photo: string | null) => void;
   taxRate?: number;
+  taxReductions?: Record<string, number>;
 }
 
-const ReceiptsList = ({ receipts, onDeleteReceipt, onEditReceipt, onUpdatePhoto, taxRate = 0.66 }: ReceiptsListProps) => {
-  const sortedReceipts = [...receipts].sort((a, b) =>
-    new Date(b.date).getTime() - new Date(a.date).getTime()
+const ReceiptsList = ({ receipts, onDeleteReceipt, onEditReceipt, onUpdatePhoto, taxRate = 0.66, taxReductions }: ReceiptsListProps) => {
+  const sortedReceipts = [...receipts].sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
   );
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
@@ -145,8 +146,16 @@ const ReceiptsList = ({ receipts, onDeleteReceipt, onEditReceipt, onUpdatePhoto,
                   <Euro className="h-4 w-4 text-muted-foreground" />
                   <span className="font-semibold text-lg">{receipt.amount.toLocaleString('fr-FR')} €</span>
                 </div>
-                <Badge variant="secondary" className="text-xs bg-success-light text-success sm:ml-auto">
-                  -{Math.round(receipt.amount * taxRate)} € d'impôt
+                <Badge
+                  variant="secondary"
+                  className="text-xs bg-success-light text-success sm:ml-auto"
+                >
+                  -{
+                    (taxReductions && receipt.id in taxReductions
+                      ? taxReductions[receipt.id]
+                      : Math.round(receipt.amount * taxRate)
+                    ).toLocaleString('fr-FR')
+                  } € d'impôt
                 </Badge>
               </div>
             </div>
