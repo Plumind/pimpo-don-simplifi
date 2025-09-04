@@ -210,6 +210,10 @@ const HouseholdPage = () => {
             </Button>
           </CardContent>
         </Card>
+
+        <p className="text-sm text-muted-foreground text-center">
+          Il existe des situations spéciales qui modifient le calcul des parts fiscales (parent isolé, invalidité, majoration pour certains adultes). Consulter la brochure pratique de la déclaration des revenus pour plus d'informations.
+        </p>
       </main>
     </div>
   );

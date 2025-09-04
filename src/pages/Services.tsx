@@ -169,6 +169,13 @@ const Services = () => {
             />
           </div>
         </div>
+
+        <p className="text-sm text-muted-foreground text-center">
+          Il existe des majorations dans certains cas particuliers : personnes âgées/handicapées par ex. Consulter la brochure pratique de la déclaration des revenus pour plus d'informations.
+        </p>
+        <p className="text-sm text-muted-foreground text-center">
+          L'enfant doit avoir moins de 6 ans au 1er janvier pour bénéficier du crédit d'impôt.
+        </p>
       </main>
     </div>
   );

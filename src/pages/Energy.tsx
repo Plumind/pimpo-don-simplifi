@@ -65,6 +65,9 @@ const Energy = () => {
         <p className="text-sm text-muted-foreground text-center">
           Reportez les travaux d'isolation en case 7AR et les équipements économes en case 7AV.
         </p>
+        <p className="text-sm text-muted-foreground text-center">
+          Le crédit d'impôt « CITE » a évolué ; certains travaux ne sont plus déclarables via 7AR/7AV. Consulter la brochure pratique de la déclaration des revenus pour plus d'informations.
+        </p>
       </main>
     </div>
   );
