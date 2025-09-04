@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import EnergyDashboard from "@/components/EnergyDashboard";
+import { TrendingUp } from "lucide-react";
 
 const Index = () => {
   const [receipts, setReceipts] = useState<Receipt[]>([]);
@@ -348,17 +349,18 @@ const Index = () => {
               </h2>
               <p className="text-muted-foreground">Année {selectedYear}</p>
             </div>
-            <Card className="max-w-xl mx-auto">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Montant total
+            <Card className="max-w-xl mx-auto bg-success-light border-success/20">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-success">
+                  Économie d'impôt
                 </CardTitle>
+                <TrendingUp className="h-4 w-4 text-success" />
               </CardHeader>
               <CardContent className="space-y-2">
-                <div className="text-2xl font-bold">
-                  {schoolingTotals.total.toLocaleString("fr-FR")} €
+                <div className="text-2xl font-bold text-success">
+                  {schoolingReduction.toLocaleString("fr-FR")} €
                 </div>
-                <ul className="text-sm text-muted-foreground">
+                <ul className="text-sm text-success/80">
                   {Object.entries(schoolingTotals.byBox).map(([box, amt]) => (
                     <li key={box}>
                       Case {box} : {amt.toLocaleString("fr-FR")} €
