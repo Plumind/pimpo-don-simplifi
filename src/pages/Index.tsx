@@ -346,6 +346,11 @@ const Index = () => {
               <p className="text-muted-foreground">Année {selectedYear}</p>
             </div>
             <Card className="max-w-xl mx-auto">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Montant total
+                </CardTitle>
+              </CardHeader>
               <CardContent className="space-y-2">
                 <div className="text-2xl font-bold">
                   {schoolingTotals.total.toLocaleString("fr-FR")} €
