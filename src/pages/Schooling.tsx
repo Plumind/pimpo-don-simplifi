@@ -14,8 +14,8 @@ import {
 import { Student } from "@/types/Student";
 
 const LEVELS = [
-  { value: "college", label: "Collégien", amount: 63, box: "7EA" },
-  { value: "lycee", label: "Lycéen", amount: 158, box: "7EC" },
+  { value: "college", label: "Collégien", amount: 61, box: "7EA" },
+  { value: "lycee", label: "Lycéen", amount: 153, box: "7EC" },
   { value: "superieur", label: "Étudiant", amount: 183, box: "7EF" },
 ];
 
