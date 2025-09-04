@@ -264,6 +264,9 @@ const AddServiceForm = ({ onAdd, initialData, onUpdate, onCancelEdit }: AddServi
                   required={formData.category === "childcare"}
                 />
               </div>
+              <p className="text-xs text-muted-foreground md:col-span-2">
+                L'enfant doit avoir moins de 6 ans au 1er janvier pour bénéficier du crédit d'impôt.
+              </p>
             </div>
           )}
 
