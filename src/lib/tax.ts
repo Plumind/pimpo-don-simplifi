@@ -14,10 +14,11 @@ export interface TaxBracket {
 }
 
 export const taxBrackets: TaxBracket[] = [
-  { limit: 10777, rate: 0 },
-  { limit: 27478, rate: 0.11 },
-  { limit: 78570, rate: 0.3 },
-  { limit: 168994, rate: 0.41 },
+  // Barème de l'impôt sur le revenu 2025
+  { limit: 11848, rate: 0 },
+  { limit: 30208, rate: 0.11 },
+  { limit: 86376, rate: 0.3 },
+  { limit: 185784, rate: 0.41 },
   { limit: Infinity, rate: 0.45 },
 ];
 
