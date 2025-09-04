@@ -113,9 +113,15 @@ const Index = () => {
 
   const totalDonations66 = filteredReceipts.reduce((sum, r) => sum + r.amount, 0);
   const totalDonations75 = filteredOtherReceipts.reduce((sum, r) => sum + r.amount, 0);
-  const base75 = Math.min(totalDonations75, 1000);
-  const excess75 = Math.max(totalDonations75 - 1000, 0);
-  const total7UF = totalDonations66 + excess75;
+  const base75 = Math.min(totalDonations75, 2000);
+  const excess75 = Math.max(totalDonations75 - 2000, 0);
+  const totalIncome = household
+    ? household.members.reduce((s, m) => s + (m.salary || 0), 0) +
+      (household.otherIncome || 0)
+    : 0;
+  const limit20 = totalIncome * 0.2;
+  const total7UF = Math.min(totalDonations66 + excess75, limit20);
+  const donationCarryForward = Math.max(totalDonations66 + excess75 - limit20, 0);
   const total7UD = base75;
   const donationReduction = Math.round(total7UF * 0.66 + total7UD * 0.75);
   const schoolingTotals = filteredStudents.reduce(
@@ -158,9 +164,6 @@ const Index = () => {
             1,
             household.members.filter((m) => m.name || m.salary).length
           );
-    const totalIncome =
-      household.members.reduce((s, m) => s + (m.salary || 0), 0) +
-      (household.otherIncome || 0);
     const parts = calculateParts(adults, household.children);
     incomeTax = calculateIncomeTax(totalIncome, parts);
     donationReductionApplied = Math.min(donationReduction, incomeTax);
