@@ -81,7 +81,7 @@ const OtherDonations = () => {
   });
 
   const calculateTaxReductions = (list: ReceiptType[]) => {
-    let remaining = 1000;
+    let remaining = 2025;
     const reductions: Record<string, number> = {};
     const chronological = [...list].sort(
       (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
@@ -109,8 +109,8 @@ const OtherDonations = () => {
 
     const title = `Année ${selectedYear}`;
     const totalAmount = filteredReceipts.reduce((sum, r) => sum + r.amount, 0);
-    const base75 = Math.min(totalAmount, 1000);
-    const base66 = Math.max(totalAmount - 1000, 0);
+    const base75 = Math.min(totalAmount, 2025);
+    const base66 = Math.max(totalAmount - 2025, 0);
     const taxReduction = Math.round(base75 * 0.75 + base66 * 0.66);
 
     const rows = filteredReceipts
@@ -147,7 +147,7 @@ const OtherDonations = () => {
         <h1>Reçus fiscaux ${title}</h1>
         <p><strong>Montant total des dons :</strong> ${totalAmount.toLocaleString('fr-FR')} €</p>
         <p>Le montant total des dons de l'année est à saisir dans la case 7UD de la déclaration d'impôts.</p>
-        <p><strong>Réduction fiscale (75% jusqu'à 1 000 €) :</strong> ${taxReduction.toLocaleString('fr-FR')} €</p>
+        <p><strong>Réduction fiscale (75% jusqu'à 2 025 €) :</strong> ${taxReduction.toLocaleString('fr-FR')} €</p>
         <p>Document justificatif à présenter à l'administration fiscale en cas de contrôle.</p>
         <table><thead><tr><th>Date</th><th>Organisme</th><th>Montant</th></tr></thead><tbody>${rows}</tbody></table>
         ${photosSection}

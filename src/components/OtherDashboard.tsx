@@ -9,8 +9,8 @@ interface DashboardProps {
 
 const OtherDashboard = ({ receipts, selectedYear }: DashboardProps) => {
   const totalAmount = receipts.reduce((sum, receipt) => sum + receipt.amount, 0);
-  const base75 = Math.min(totalAmount, 1000);
-  const base66 = Math.max(totalAmount - 1000, 0);
+  const base75 = Math.min(totalAmount, 2025);
+  const base66 = Math.max(totalAmount - 2025, 0);
   const taxReduction = Math.round(base75 * 0.75 + base66 * 0.66);
 
   return (
@@ -59,7 +59,7 @@ const OtherDashboard = ({ receipts, selectedYear }: DashboardProps) => {
           <CardContent>
             <div className="text-2xl font-bold text-success">{taxReduction.toLocaleString('fr-FR')} €</div>
             <p className="text-xs text-success/80">
-              réduction estimée (75% jusqu'à 1 000 €)
+              réduction estimée (75% jusqu'à 2 025 €)
             </p>
           </CardContent>
         </Card>
