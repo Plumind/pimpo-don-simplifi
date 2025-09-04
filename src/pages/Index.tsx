@@ -316,18 +316,16 @@ const Index = () => {
         )}
 
         <Dashboard receipts={filteredReceipts} selectedYear={selectedYear} />
+        <p className="text-sm text-muted-foreground text-center">
+          Dons 66% : {total7UF.toLocaleString("fr-FR")} € → case 7UF
+        </p>
         <OtherDashboard
           receipts={filteredOtherReceipts}
           selectedYear={selectedYear}
         />
-        <div className="text-sm text-muted-foreground text-center flex flex-col sm:flex-row sm:justify-center gap-2">
-          <span>
-            Dons 66% : {total7UF.toLocaleString("fr-FR")} € → case 7UF
-          </span>
-          <span>
-            Dons 75% : {total7UD.toLocaleString("fr-FR")} € → case 7UD
-          </span>
-        </div>
+        <p className="text-sm text-muted-foreground text-center">
+          Dons 75% : {total7UD.toLocaleString("fr-FR")} € → case 7UD
+        </p>
 
         <ServicesDashboard expenses={filteredExpenses} selectedYear={selectedYear} />
         <p className="text-sm text-muted-foreground text-center">
@@ -341,11 +339,13 @@ const Index = () => {
 
         {filteredStudents.length > 0 && (
           <>
+            <div className="text-center py-6">
+              <h2 className="text-3xl font-bold text-foreground mb-2">
+                Synthèse scolarité
+              </h2>
+              <p className="text-muted-foreground">Année {selectedYear}</p>
+            </div>
             <Card className="max-w-xl mx-auto">
-              <CardHeader>
-                <CardTitle>Synthèse scolarité</CardTitle>
-                <CardDescription>Année {selectedYear}</CardDescription>
-              </CardHeader>
               <CardContent className="space-y-2">
                 <div className="text-2xl font-bold">
                   {schoolingTotals.total.toLocaleString("fr-FR")} €
