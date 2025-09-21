@@ -9,7 +9,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useUserData } from "@/hooks/useUserData";
-import { useAuth } from "@/contexts/AuthContext";
 import { uploadServicePhoto, removeFromStorage } from "@/lib/storage";
 import { Loader2 } from "lucide-react";
 
@@ -24,7 +23,6 @@ const Services = () => {
   const currentYear = new Date().getFullYear().toString();
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const { toast } = useToast();
-  const { user } = useAuth();
   const { data, isLoading, updateSection, isUpdating } = useUserData();
 
   const servicesExpenses = data?.services;
@@ -54,30 +52,17 @@ const Services = () => {
     return matchesYear && matchesSearch;
   });
 
-  const ensureUserId = () => {
-    if (!user?.uid) {
-      toast({
-        title: "Session expirée",
-        description: "Veuillez vous reconnecter pour continuer.",
-        variant: "destructive",
-      });
-      throw new Error("Utilisateur non connecté");
-    }
-    return user.uid;
-  };
-
   const handleAdd = async (
     expense: ServiceExpense,
     options?: { file?: File | null }
   ) => {
     try {
-      const uid = ensureUserId();
       let toSave: ServiceExpense = {
         ...expense,
         createdAt: expense.createdAt || new Date().toISOString(),
       };
       if (options?.file) {
-        const { url, path } = await uploadServicePhoto(uid, expense.id, options.file);
+        const { url, path } = await uploadServicePhoto(null, expense.id, options.file);
         toSave = { ...toSave, photo: url, storagePath: path };
       }
       await updateSection("services", [...expenses, toSave]);
@@ -100,7 +85,6 @@ const Services = () => {
     options?: ServiceUpdateOptions
   ) => {
     try {
-      const uid = ensureUserId();
       const existing = expenses.find((e) => e.id === expense.id);
       let nextExpense = { ...expense };
 
@@ -110,7 +94,7 @@ const Services = () => {
       }
 
       if (options?.file) {
-        const { url, path } = await uploadServicePhoto(uid, expense.id, options.file);
+        const { url, path } = await uploadServicePhoto(null, expense.id, options.file);
         nextExpense = { ...nextExpense, photo: url, storagePath: path };
       }
 
@@ -133,7 +117,6 @@ const Services = () => {
 
   const handleDelete = async (id: string) => {
     try {
-      ensureUserId();
       const target = expenses.find((e) => e.id === id);
       if (target?.storagePath) {
         await removeFromStorage(target.storagePath);
