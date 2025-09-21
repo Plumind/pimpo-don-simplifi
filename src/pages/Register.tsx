@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -7,25 +7,56 @@ import { Button } from "@/components/ui/button";
 import { Loader2, UserPlus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import {
+  OnboardingProfile,
+  clearOnboardingProfile,
+  readOnboardingProfile,
+  saveOnboardingProfile,
+} from "@/lib/onboarding";
+
+const emptyProfile: OnboardingProfile = {
+  firstName: "",
+  lastName: "",
+  email: "",
+};
 
 const Register = () => {
   const { signUp, user, loading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
+
+  const onboardingState = (location.state as { prefill?: OnboardingProfile } | undefined)?.prefill;
+  const storedProfile = readOnboardingProfile();
+  const profile = onboardingState ?? storedProfile ?? emptyProfile;
+
   const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
+    firstName: profile.firstName,
+    lastName: profile.lastName,
+    email: profile.email,
     password: "",
     confirm: "",
   });
+  const { firstName, lastName, email } = formData;
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (!loading && user) {
-      navigate("/");
+      navigate("/app");
     }
   }, [user, loading, navigate]);
+
+  useEffect(() => {
+    if (onboardingState) {
+      void saveOnboardingProfile(onboardingState);
+    }
+  }, [onboardingState]);
+
+  useEffect(() => {
+    if (firstName || lastName || email) {
+      void saveOnboardingProfile({ firstName, lastName, email });
+    }
+  }, [firstName, lastName, email]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -54,11 +85,12 @@ const Register = () => {
         email: formData.email.trim(),
         password: formData.password,
       });
+      clearOnboardingProfile();
       toast({
         title: "Compte créé",
         description: "Vous pouvez maintenant utiliser Pimpôts.",
       });
-      navigate("/");
+      navigate("/app");
     } catch (error) {
       console.error(error);
       toast({

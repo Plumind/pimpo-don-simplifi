@@ -9,11 +9,24 @@ const Header = () => {
   const { user, signOut } = useAuth();
   const displayName = user?.displayName?.trim();
   const subtitle = displayName || user?.email || "";
+
+  const navItems = [
+    { to: "/app", label: "Aperçu" },
+    { to: "/app/foyer", label: "Foyer fiscal" },
+    { to: "/app/donations", label: "Dons" },
+    { to: "/app/services", label: "Services à la personne" },
+    { to: "/app/energie", label: "Transition énergétique" },
+    { to: "/app/scolarite", label: "Scolarité" },
+  ];
+
+  const isActive = (path: string) =>
+    location.pathname === path || location.pathname.startsWith(`${path}/`);
+
   return (
     <header className="bg-card border-b border-border">
       <div className="container mx-auto px-4 py-6">
         <div className="flex items-center justify-between gap-3">
-          <Link to="/" className="flex items-center gap-3">
+          <Link to="/app" className="flex items-center gap-3">
             <img src={logo} alt="Logo Pimpôts" className="h-12 w-12" />
             <div>
               <h1 className="text-2xl font-bold text-foreground">Pimpôts</h1>
@@ -25,46 +38,19 @@ const Header = () => {
             </div>
           </Link>
           <nav className="hidden items-center gap-4 sm:flex">
-            <Link
-              to="/"
-              className={`text-sm font-medium hover:underline ${location.pathname === '/' ? 'text-primary' : 'text-foreground'}`}
-            >
-              Aperçu
-            </Link>
-            <Link
-              to="/foyer"
-              className={`text-sm font-medium hover:underline ${location.pathname === '/foyer' ? 'text-primary' : 'text-foreground'}`}
-            >
-              Foyer fiscal
-            </Link>
-            <Link
-              to="/donations"
-              className={`text-sm font-medium hover:underline ${location.pathname === '/donations' ? 'text-primary' : 'text-foreground'}`}
-            >
-              Dons
-            </Link>
-            <Link
-              to="/services"
-              className={`text-sm font-medium hover:underline ${location.pathname === '/services' ? 'text-primary' : 'text-foreground'}`}
-            >
-              Services à la personne
-            </Link>
-            <Link
-              to="/energie"
-              className={`text-sm font-medium hover:underline ${location.pathname === '/energie' ? 'text-primary' : 'text-foreground'}`}
-            >
-              Transition énergétique
-            </Link>
-            <Link
-              to="/scolarite"
-              className={`text-sm font-medium hover:underline ${location.pathname === '/scolarite' ? 'text-primary' : 'text-foreground'}`}
-            >
-              Scolarité
-            </Link>
+            {navItems.map(({ to, label }) => (
+              <Link
+                key={to}
+                to={to}
+                className={`text-sm font-medium hover:underline ${
+                  isActive(to) ? "text-primary" : "text-foreground"
+                }`}
+              >
+                {label}
+              </Link>
+            ))}
             <div className="ml-4 flex items-center gap-3">
-              {subtitle ? (
-                <span className="text-sm text-muted-foreground">{subtitle}</span>
-              ) : null}
+              {subtitle ? <span className="text-sm text-muted-foreground">{subtitle}</span> : null}
               <Button
                 variant="outline"
                 size="sm"
