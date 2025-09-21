@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -8,20 +8,35 @@ import { Plus, Camera, ImageOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface AddReceiptFormProps {
-  onAddReceipt: (receipt: ReceiptType) => void;
+  onAddReceipt: (
+    receipt: ReceiptType,
+    options?: { file?: File | null }
+  ) => Promise<void> | void;
   initialData?: ReceiptType;
-  onUpdateReceipt?: (receipt: ReceiptType) => void;
+  onUpdateReceipt?: (
+    receipt: ReceiptType,
+    options?: { file?: File | null; removePhoto?: boolean }
+  ) => Promise<void> | void;
   onCancelEdit?: () => void;
+  isSubmitting?: boolean;
 }
 
-const AddReceiptForm = ({ onAddReceipt, initialData, onUpdateReceipt, onCancelEdit }: AddReceiptFormProps) => {
+const AddReceiptForm = ({
+  onAddReceipt,
+  initialData,
+  onUpdateReceipt,
+  onCancelEdit,
+  isSubmitting,
+}: AddReceiptFormProps) => {
   const [isFormOpen, setIsFormOpen] = useState(!!initialData);
   const [formData, setFormData] = useState({
     date: initialData?.date || "",
     organism: initialData?.organism || "",
     amount: initialData?.amount ? initialData.amount.toString() : "",
   });
-  const [photo, setPhoto] = useState<string | null>(initialData?.photo || null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(initialData?.photo || null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [removePhoto, setRemovePhoto] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -33,11 +48,21 @@ const AddReceiptForm = ({ onAddReceipt, initialData, onUpdateReceipt, onCancelEd
         organism: initialData.organism,
         amount: initialData.amount.toString(),
       });
-      setPhoto(initialData.photo || null);
+      setPhotoPreview(initialData.photo || null);
+      setSelectedFile(null);
+      setRemovePhoto(false);
     }
   }, [initialData]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const resetForm = () => {
+    setFormData({ date: "", organism: "", amount: "" });
+    setPhotoPreview(null);
+    setSelectedFile(null);
+    setRemovePhoto(false);
+    setIsFormOpen(false);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!formData.date || !formData.organism || !formData.amount) {
@@ -54,26 +79,29 @@ const AddReceiptForm = ({ onAddReceipt, initialData, onUpdateReceipt, onCancelEd
       date: formData.date,
       organism: formData.organism.trim(),
       amount: parseFloat(formData.amount),
-      photo: photo || undefined,
+      photo: photoPreview || undefined,
+      storagePath: initialData?.storagePath,
       createdAt: initialData?.createdAt || new Date().toISOString(),
     };
 
-    if (initialData && onUpdateReceipt) {
-      onUpdateReceipt(newReceipt);
+    try {
+      if (initialData && onUpdateReceipt) {
+        await onUpdateReceipt(newReceipt, {
+          file: selectedFile || undefined,
+          removePhoto,
+        });
+      } else {
+        await onAddReceipt(newReceipt, { file: selectedFile || undefined });
+      }
+      resetForm();
+    } catch (error) {
+      console.error(error);
       toast({
-        title: "Reçu mis à jour !",
-        description: `Don de ${newReceipt.amount}€ à ${newReceipt.organism} modifié.`,
-      });
-    } else {
-      onAddReceipt(newReceipt);
-      toast({
-        title: "Reçu ajouté !",
-        description: `Don de ${newReceipt.amount}€ à ${newReceipt.organism} enregistré.`,
+        title: "Erreur",
+        description: "Impossible d'enregistrer le reçu.",
+        variant: "destructive",
       });
     }
-    setFormData({ date: "", organism: "", amount: "" });
-    setPhoto(null);
-    setIsFormOpen(false);
   };
 
   const handleInputChange = (field: string, value: string) => {
@@ -84,16 +112,20 @@ const AddReceiptForm = ({ onAddReceipt, initialData, onUpdateReceipt, onCancelEd
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (photo && !confirm("Remplacer la photo existante ?")) {
-      e.target.value = "";
-      return;
-    }
+    setSelectedFile(file);
+    setRemovePhoto(false);
 
     const reader = new FileReader();
     reader.onloadend = () => {
-      setPhoto(reader.result as string);
+      setPhotoPreview(reader.result as string);
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleRemovePhoto = () => {
+    setPhotoPreview(null);
+    setSelectedFile(null);
+    setRemovePhoto(true);
   };
 
   if (!isFormOpen) {
@@ -173,9 +205,9 @@ const AddReceiptForm = ({ onAddReceipt, initialData, onUpdateReceipt, onCancelEd
           <div className="space-y-2">
             <Label>Photo du reçu</Label>
             <div className="flex items-center gap-2">
-              {photo && (
+              {photoPreview && (
                 <img
-                  src={photo}
+                  src={photoPreview}
                   alt="Reçu"
                   className="h-20 w-20 object-cover rounded"
                 />
@@ -187,44 +219,43 @@ const AddReceiptForm = ({ onAddReceipt, initialData, onUpdateReceipt, onCancelEd
                 onClick={() => fileInputRef.current?.click()}
               >
                 <Camera className="h-4 w-4" />
-                {photo ? "Remplacer la photo" : "Prendre une photo"}
+                {photoPreview ? "Remplacer la photo" : "Ajouter une photo"}
               </Button>
-              {photo && (
+              {(photoPreview || initialData?.photo) && (
                 <Button
                   type="button"
                   variant="ghost"
-                  onClick={() => setPhoto(null)}
+                  onClick={handleRemovePhoto}
                 >
                   <ImageOff className="h-4 w-4" />
                 </Button>
               )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={handlePhotoChange}
+              />
             </div>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              capture="environment"
-              className="hidden"
-              onChange={handlePhotoChange}
-            />
           </div>
 
-          <div className="flex gap-3 pt-4">
-            <Button type="submit" className="flex-1">
-              {initialData ? "Mettre à jour" : "Enregistrer le reçu"}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => {
-                setIsFormOpen(false);
-                setFormData({ date: "", organism: "", amount: "" });
-                setPhoto(null);
-                if (initialData && onCancelEdit) onCancelEdit();
-              }}
-              className="flex-1"
-            >
-              Annuler
+          <div className="flex justify-end gap-2">
+            {initialData && (
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => {
+                  onCancelEdit?.();
+                  resetForm();
+                }}
+              >
+                Annuler
+              </Button>
+            )}
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Enregistrement..." : initialData ? "Mettre à jour" : "Enregistrer"}
             </Button>
           </div>
         </form>

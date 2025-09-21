@@ -7,10 +7,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { EnergyExpense } from "@/types/EnergyExpense";
 
 interface AddEnergyFormProps {
-  onAdd: (exp: EnergyExpense) => void;
+  onAdd: (exp: EnergyExpense) => Promise<void> | void;
+  isSubmitting?: boolean;
 }
 
-const AddEnergyForm = ({ onAdd }: AddEnergyFormProps) => {
+const AddEnergyForm = ({ onAdd, isSubmitting }: AddEnergyFormProps) => {
   const [formData, setFormData] = useState({
     date: "",
     category: "isolation",
@@ -18,7 +19,7 @@ const AddEnergyForm = ({ onAdd }: AddEnergyFormProps) => {
     amount: "",
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.date || !formData.category || !formData.amount) return;
     const newExpense: EnergyExpense = {
@@ -29,8 +30,12 @@ const AddEnergyForm = ({ onAdd }: AddEnergyFormProps) => {
       amount: parseFloat(formData.amount),
       createdAt: new Date().toISOString(),
     };
-    onAdd(newExpense);
-    setFormData({ date: "", category: "isolation", description: "", amount: "" });
+    try {
+      await onAdd(newExpense);
+      setFormData({ date: "", category: "isolation", description: "", amount: "" });
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   const handleChange = (field: string, value: string) => {
@@ -68,7 +73,9 @@ const AddEnergyForm = ({ onAdd }: AddEnergyFormProps) => {
             <Label htmlFor="amount">Montant (€) *</Label>
             <Input id="amount" type="number" min="0" step="0.01" value={formData.amount} onChange={e => handleChange('amount', e.target.value)} required />
           </div>
-          <Button type="submit" className="w-full">Enregistrer</Button>
+          <Button type="submit" className="w-full" disabled={isSubmitting}>
+            {isSubmitting ? "Enregistrement..." : "Enregistrer"}
+          </Button>
         </form>
       </CardContent>
     </Card>

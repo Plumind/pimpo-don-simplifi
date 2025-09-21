@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,13 +9,20 @@ import { Plus, Camera, ImageOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface AddServiceFormProps {
-  onAdd: (expense: ServiceExpense) => void;
+  onAdd: (
+    expense: ServiceExpense,
+    options?: { file?: File | null }
+  ) => Promise<void> | void;
   initialData?: ServiceExpense;
-  onUpdate?: (expense: ServiceExpense) => void;
+  onUpdate?: (
+    expense: ServiceExpense,
+    options?: { file?: File | null; removePhoto?: boolean }
+  ) => Promise<void> | void;
   onCancelEdit?: () => void;
+  isSubmitting?: boolean;
 }
 
-const AddServiceForm = ({ onAdd, initialData, onUpdate, onCancelEdit }: AddServiceFormProps) => {
+const AddServiceForm = ({ onAdd, initialData, onUpdate, onCancelEdit, isSubmitting }: AddServiceFormProps) => {
   const [isFormOpen, setIsFormOpen] = useState(!!initialData);
   const [formData, setFormData] = useState({
     date: initialData?.date || "",
@@ -27,7 +34,9 @@ const AddServiceForm = ({ onAdd, initialData, onUpdate, onCancelEdit }: AddServi
     childName: initialData?.childName || "",
     childBirthDate: initialData?.childBirthDate || "",
   });
-  const [photo, setPhoto] = useState<string | null>(initialData?.photo || null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(initialData?.photo || null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [removePhoto, setRemovePhoto] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -44,11 +53,30 @@ const AddServiceForm = ({ onAdd, initialData, onUpdate, onCancelEdit }: AddServi
         childName: initialData.childName || "",
         childBirthDate: initialData.childBirthDate || "",
       });
-      setPhoto(initialData.photo || null);
+      setPhotoPreview(initialData.photo || null);
+      setSelectedFile(null);
+      setRemovePhoto(false);
     }
   }, [initialData]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const resetForm = () => {
+    setFormData({
+      date: "",
+      category: "home",
+      nature: "",
+      provider: "",
+      amount: "",
+      aids: "0",
+      childName: "",
+      childBirthDate: "",
+    });
+    setPhotoPreview(null);
+    setSelectedFile(null);
+    setRemovePhoto(false);
+    setIsFormOpen(false);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!formData.date || !formData.nature || !formData.provider || !formData.amount) {
@@ -63,7 +91,7 @@ const AddServiceForm = ({ onAdd, initialData, onUpdate, onCancelEdit }: AddServi
     if (formData.category === "childcare" && (!formData.childName || !formData.childBirthDate)) {
       toast({
         title: "Informations enfant manquantes",
-        description: "Nom et date de naissance du ou des enfants requis pour la garde d'enfants.",
+        description: "Nom et date de naissance requis pour la garde d'enfants.",
         variant: "destructive",
       });
       return;
@@ -79,36 +107,29 @@ const AddServiceForm = ({ onAdd, initialData, onUpdate, onCancelEdit }: AddServi
       aids: parseFloat(formData.aids || "0"),
       childName: formData.category === "childcare" ? formData.childName.trim() : undefined,
       childBirthDate: formData.category === "childcare" ? formData.childBirthDate : undefined,
-      photo: photo || undefined,
+      photo: photoPreview || undefined,
+      storagePath: initialData?.storagePath,
       createdAt: initialData?.createdAt || new Date().toISOString(),
     };
 
-    if (initialData && onUpdate) {
-      onUpdate(newExpense);
+    try {
+      if (initialData && onUpdate) {
+        await onUpdate(newExpense, {
+          file: selectedFile || undefined,
+          removePhoto,
+        });
+      } else {
+        await onAdd(newExpense, { file: selectedFile || undefined });
+      }
+      resetForm();
+    } catch (error) {
+      console.error(error);
       toast({
-        title: "Dépense mise à jour !",
-        description: `${newExpense.nature} enregistré pour ${newExpense.provider}.`,
-      });
-    } else {
-      onAdd(newExpense);
-      toast({
-        title: "Dépense ajoutée !",
-        description: `${newExpense.nature} enregistré pour ${newExpense.provider}.`,
+        title: "Erreur",
+        description: "Impossible d'enregistrer la dépense.",
+        variant: "destructive",
       });
     }
-
-    setFormData({
-      date: "",
-      category: "home",
-      nature: "",
-      provider: "",
-      amount: "",
-      aids: "0",
-      childName: "",
-      childBirthDate: "",
-    });
-    setPhoto(null);
-    setIsFormOpen(false);
   };
 
   const handleInputChange = (field: string, value: string) => {
@@ -119,16 +140,20 @@ const AddServiceForm = ({ onAdd, initialData, onUpdate, onCancelEdit }: AddServi
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (photo && !confirm("Remplacer la photo existante ?")) {
-      e.target.value = "";
-      return;
-    }
+    setSelectedFile(file);
+    setRemovePhoto(false);
 
     const reader = new FileReader();
     reader.onloadend = () => {
-      setPhoto(reader.result as string);
+      setPhotoPreview(reader.result as string);
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleRemovePhoto = () => {
+    setPhotoPreview(null);
+    setSelectedFile(null);
+    setRemovePhoto(true);
   };
 
   if (!isFormOpen) {
@@ -204,11 +229,11 @@ const AddServiceForm = ({ onAdd, initialData, onUpdate, onCancelEdit }: AddServi
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="provider">Organisme / prestataire *</Label>
+            <Label htmlFor="provider">Prestataire *</Label>
             <Input
               id="provider"
               type="text"
-              placeholder="Nom du prestataire"
+              placeholder="ex: Société de services"
               value={formData.provider}
               onChange={(e) => handleInputChange("provider", e.target.value)}
               className="w-full"
@@ -218,12 +243,12 @@ const AddServiceForm = ({ onAdd, initialData, onUpdate, onCancelEdit }: AddServi
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="amount">Montant (€) *</Label>
+              <Label htmlFor="amount">Dépense engagée (€) *</Label>
               <Input
                 id="amount"
                 type="number"
-                step="0.01"
                 min="0"
+                step="0.01"
                 value={formData.amount}
                 onChange={(e) => handleInputChange("amount", e.target.value)}
                 required
@@ -234,8 +259,8 @@ const AddServiceForm = ({ onAdd, initialData, onUpdate, onCancelEdit }: AddServi
               <Input
                 id="aids"
                 type="number"
-                step="0.01"
                 min="0"
+                step="0.01"
                 value={formData.aids}
                 onChange={(e) => handleInputChange("aids", e.target.value)}
               />
@@ -245,13 +270,12 @@ const AddServiceForm = ({ onAdd, initialData, onUpdate, onCancelEdit }: AddServi
           {formData.category === "childcare" && (
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="childName">Nom du ou des enfants *</Label>
+                <Label htmlFor="childName">Nom de l'enfant *</Label>
                 <Input
                   id="childName"
-                  type="text"
                   value={formData.childName}
                   onChange={(e) => handleInputChange("childName", e.target.value)}
-                  required={formData.category === "childcare"}
+                  required
                 />
               </div>
               <div className="space-y-2">
@@ -261,20 +285,21 @@ const AddServiceForm = ({ onAdd, initialData, onUpdate, onCancelEdit }: AddServi
                   type="date"
                   value={formData.childBirthDate}
                   onChange={(e) => handleInputChange("childBirthDate", e.target.value)}
-                  required={formData.category === "childcare"}
+                  required
                 />
               </div>
-              <p className="text-xs text-muted-foreground md:col-span-2">
-                L'enfant doit avoir moins de 6 ans au 1er janvier pour bénéficier du crédit d'impôt.
-              </p>
             </div>
           )}
 
           <div className="space-y-2">
             <Label>Justificatif</Label>
             <div className="flex items-center gap-2">
-              {photo && (
-                <img src={photo} alt="Justificatif" className="h-20 w-20 object-cover rounded" />
+              {photoPreview && (
+                <img
+                  src={photoPreview}
+                  alt="Justificatif"
+                  className="h-20 w-20 rounded object-cover"
+                />
               )}
               <Button
                 type="button"
@@ -283,49 +308,39 @@ const AddServiceForm = ({ onAdd, initialData, onUpdate, onCancelEdit }: AddServi
                 onClick={() => fileInputRef.current?.click()}
               >
                 <Camera className="h-4 w-4" />
-                {photo ? "Remplacer" : "Ajouter"}
+                {photoPreview ? "Remplacer le justificatif" : "Ajouter un justificatif"}
               </Button>
-              {photo && (
-                <Button type="button" variant="ghost" onClick={() => setPhoto(null)}>
+              {(photoPreview || initialData?.photo) && (
+                <Button type="button" variant="ghost" onClick={handleRemovePhoto}>
                   <ImageOff className="h-4 w-4" />
                 </Button>
               )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={handlePhotoChange}
+              />
             </div>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              capture="environment"
-              className="hidden"
-              onChange={handlePhotoChange}
-            />
           </div>
 
-          <div className="flex gap-3 pt-4">
-            <Button type="submit" className="flex-1">
-              {initialData ? "Mettre à jour" : "Enregistrer"}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => {
-                setIsFormOpen(false);
-                setFormData({
-                  date: "",
-                  category: "home",
-                  nature: "",
-                  provider: "",
-                  amount: "",
-                  aids: "0",
-                  childName: "",
-                  childBirthDate: "",
-                });
-                setPhoto(null);
-                if (initialData && onCancelEdit) onCancelEdit();
-              }}
-              className="flex-1"
-            >
-              Annuler
+          <div className="flex justify-end gap-2">
+            {initialData && (
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => {
+                  onCancelEdit?.();
+                  resetForm();
+                }}
+              >
+                Annuler
+              </Button>
+            )}
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Enregistrement..." : initialData ? "Mettre à jour" : "Enregistrer"}
             </Button>
           </div>
         </form>

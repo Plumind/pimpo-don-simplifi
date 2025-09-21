@@ -5,7 +5,7 @@ import { Trash } from "lucide-react";
 
 interface EnergyListProps {
   expenses: EnergyExpense[];
-  onDelete: (id: string) => void;
+  onDelete: (id: string) => void | Promise<void>;
 }
 
 const EnergyList = ({ expenses, onDelete }: EnergyListProps) => {
@@ -34,7 +34,13 @@ const EnergyList = ({ expenses, onDelete }: EnergyListProps) => {
             </div>
             <div className="flex items-center gap-4">
               <span className="font-bold">{e.amount.toLocaleString('fr-FR')} €</span>
-              <Button variant="ghost" size="icon" onClick={() => onDelete(e.id)}>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  void onDelete(e.id);
+                }}
+              >
                 <Trash className="h-4 w-4" />
               </Button>
             </div>

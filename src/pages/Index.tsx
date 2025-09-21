@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Header from "@/components/Header";
 import Dashboard from "@/components/Dashboard";
 import ServicesDashboard from "@/components/ServicesDashboard";
@@ -18,86 +18,76 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import EnergyDashboard from "@/components/EnergyDashboard";
-import { TrendingUp } from "lucide-react";
+import { Loader2, TrendingUp } from "lucide-react";
+import { useUserData } from "@/hooks/useUserData";
 
 const Index = () => {
-  const [receipts, setReceipts] = useState<Receipt[]>([]);
-  const [otherReceipts, setOtherReceipts] = useState<Receipt[]>([]);
-  const [expenses, setExpenses] = useState<ServiceExpense[]>([]);
-  const [students, setStudents] = useState<Student[]>([]);
-  const [energy, setEnergy] = useState<EnergyExpense[]>([]);
   const currentYear = new Date().getFullYear().toString();
   const [selectedYear, setSelectedYear] = useState(currentYear);
-  const [household, setHousehold] = useState<Household | null>(null);
+  const { data, isLoading, error } = useUserData();
 
-  useEffect(() => {
-    const storedReceipts = localStorage.getItem("pimpots-receipts");
-    if (storedReceipts) {
-      try {
-        setReceipts(JSON.parse(storedReceipts));
-      } catch (e) {
-        console.error("Error loading receipts from localStorage:", e);
-      }
-    }
+  const donations66 = data?.donations66;
+  const donations75 = data?.donations75;
+  const serviceExpenses = data?.services;
+  const schoolingStudents = data?.schooling;
+  const energyExpenses = data?.energy;
+  const household = data?.household ?? null;
 
-    const storedOther = localStorage.getItem("pimpots-other-receipts");
-    if (storedOther) {
-      try {
-        setOtherReceipts(JSON.parse(storedOther));
-      } catch (e) {
-        console.error("Error loading other receipts from localStorage:", e);
-      }
-    }
+  const receipts = useMemo(
+    () => donations66 ?? [],
+    [donations66]
+  );
+  const otherReceipts = useMemo(
+    () => donations75 ?? [],
+    [donations75]
+  );
+  const expenses = useMemo(
+    () => serviceExpenses ?? [],
+    [serviceExpenses]
+  );
+  const students = useMemo(
+    () => schoolingStudents ?? [],
+    [schoolingStudents]
+  );
+  const energy = useMemo(
+    () => energyExpenses ?? [],
+    [energyExpenses]
+  );
 
-    const storedServices = localStorage.getItem("pimpots-services");
-    if (storedServices) {
-      try {
-        setExpenses(JSON.parse(storedServices));
-      } catch (e) {
-        console.error("Error loading services from localStorage:", e);
-      }
-    }
-
-    const storedSchooling = localStorage.getItem("pimpots-schooling");
-    if (storedSchooling) {
-      try {
-        setStudents(JSON.parse(storedSchooling));
-      } catch (e) {
-        console.error("Error loading schooling from localStorage:", e);
-      }
-    }
-
-    const storedEnergy = localStorage.getItem("pimpots-energy");
-    if (storedEnergy) {
-      try {
-        setEnergy(JSON.parse(storedEnergy));
-      } catch (e) {
-        console.error("Error loading energy from localStorage:", e);
-      }
-    }
-
-    const storedHousehold = localStorage.getItem("pimpots-household");
-    if (storedHousehold) {
-      try {
-        const parsed: Household = JSON.parse(storedHousehold);
-        setHousehold({ status: "marie", otherIncome: 0, ...parsed });
-      } catch (e) {
-        console.error("Error loading household from localStorage:", e);
-      }
-    }
-  }, []);
-
-  const years = Array.from(
-    new Set([
+  const years = useMemo(() => {
+    const list = [
       ...receipts.map((r) => r.date.slice(0, 4)),
       ...otherReceipts.map((r) => r.date.slice(0, 4)),
       ...expenses.map((e) => e.date.slice(0, 4)),
       ...energy.map((e) => e.date.slice(0, 4)),
       currentYear,
-    ])
-  )
-    .sort()
-    .reverse();
+    ];
+    return Array.from(new Set(list)).sort().reverse();
+  }, [receipts, otherReceipts, expenses, energy, currentYear]);
+
+  useEffect(() => {
+    if (years.length > 0 && !years.includes(selectedYear)) {
+      setSelectedYear(years[0]);
+    }
+  }, [years, selectedYear]);
+
+  if (error) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background px-4">
+        <div className="max-w-md text-center text-destructive">
+          Une erreur est survenue lors du chargement de vos données. Veuillez actualiser la page.
+        </div>
+      </div>
+    );
+  }
+
+  if (isLoading || !data) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   const filteredReceipts = receipts.filter((r) => r.date.startsWith(selectedYear));
   const filteredOtherReceipts = otherReceipts.filter((r) => r.date.startsWith(selectedYear));
