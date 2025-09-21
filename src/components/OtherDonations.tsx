@@ -14,7 +14,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useUserData } from "@/hooks/useUserData";
-import { useAuth } from "@/contexts/AuthContext";
 import { uploadReceiptPhoto, removeFromStorage } from "@/lib/storage";
 import { Loader2 } from "lucide-react";
 
@@ -29,7 +28,6 @@ const OtherDonations = () => {
   const currentYear = new Date().getFullYear().toString();
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const { toast } = useToast();
-  const { user } = useAuth();
   const { data, isLoading, updateSection, isUpdating } = useUserData();
 
   const donations75 = data?.donations75;
@@ -60,30 +58,17 @@ const OtherDonations = () => {
     return matchesYear && matchesSearch;
   });
 
-  const ensureUserId = () => {
-    if (!user?.uid) {
-      toast({
-        title: "Session expirée",
-        description: "Veuillez vous reconnecter pour continuer.",
-        variant: "destructive",
-      });
-      throw new Error("Utilisateur non connecté");
-    }
-    return user.uid;
-  };
-
   const handleAddReceipt = async (
     newReceipt: ReceiptType,
     options?: { file?: File | null }
   ) => {
     try {
-      const uid = ensureUserId();
       let receiptToSave: ReceiptType = {
         ...newReceipt,
         createdAt: newReceipt.createdAt || new Date().toISOString(),
       };
       if (options?.file) {
-        const { url, path } = await uploadReceiptPhoto(uid, newReceipt.id, options.file);
+        const { url, path } = await uploadReceiptPhoto(null, newReceipt.id, options.file);
         receiptToSave = {
           ...receiptToSave,
           photo: url,
@@ -110,7 +95,6 @@ const OtherDonations = () => {
     options?: ReceiptUpdateOptions
   ) => {
     try {
-      const uid = ensureUserId();
       const existing = receipts.find((r) => r.id === updated.id);
       let nextReceipt = { ...updated };
 
@@ -120,7 +104,7 @@ const OtherDonations = () => {
       }
 
       if (options?.file) {
-        const { url, path } = await uploadReceiptPhoto(uid, updated.id, options.file);
+        const { url, path } = await uploadReceiptPhoto(null, updated.id, options.file);
         nextReceipt = { ...nextReceipt, photo: url, storagePath: path };
       }
 
@@ -143,7 +127,6 @@ const OtherDonations = () => {
 
   const handleDeleteReceipt = async (id: string) => {
     try {
-      ensureUserId();
       const target = receipts.find((r) => r.id === id);
       if (target?.storagePath) {
         await removeFromStorage(target.storagePath);

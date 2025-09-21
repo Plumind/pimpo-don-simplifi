@@ -26,11 +26,11 @@ import { calculateIncomeTax, calculateParts } from "@/lib/tax";
 const defaultHousehold: Household = {
   status: "marie",
   members: [
-    { name: "", salary: 0 },
-    { name: "", salary: 0 },
+    { name: "Pamela", salary: 35000 },
+    { name: "Tyson", salary: 32000 },
   ],
-  children: 0,
-  otherIncome: 0,
+  children: 2,
+  otherIncome: 2000,
 };
 
 const heroHighlights = [
@@ -42,7 +42,7 @@ const heroHighlights = [
   {
     icon: ShieldCheck,
     title: "Données sécurisées",
-    description: "Vos informations sont prêtes à être stockées dans Firebase.",
+    description: "Vos informations sont sécurisées et prêtes à être synchronisées dans Neon via Netlify.",
   },
   {
     icon: LineChart,
@@ -212,7 +212,7 @@ const Home = () => {
               </h1>
               <p className="max-w-2xl text-lg text-muted-foreground">
                 Enregistrez vos dons, vos services à la personne et vos dépenses énergétiques au fil de l'année.
-                Lorsque vous êtes prêt, connectez votre compte Firebase pour conserver toutes vos informations.
+                Lorsque vous êtes prêt, synchronisez votre espace Netlify avec Neon pour conserver toutes vos informations.
               </p>
               <div className="grid gap-4 sm:grid-cols-2">
                 {heroHighlights.map(({ icon: Icon, title, description }) => (
@@ -244,7 +244,7 @@ const Home = () => {
               <CardHeader>
                 <CardTitle>Ouvrir un compte</CardTitle>
                 <CardDescription>
-                  Renseignez vos informations pour finaliser votre inscription et connecter votre foyer à Firebase.
+                  Renseignez vos informations pour finaliser votre inscription et relier automatiquement votre foyer à Neon.
                 </CardDescription>
               </CardHeader>
               <CardContent>

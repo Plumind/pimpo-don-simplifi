@@ -1,39 +1,19 @@
 import { useMemo } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { doc, getDoc, setDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
-import { UserData, UserProfile } from "@/types/UserData";
-import {
-  clearLocalUserData,
-  ensureHouseholdDefaults,
-  mergeLocalDataWithProfile,
-  readLocalUserData,
-} from "@/lib/user-data";
+import { UserData } from "@/types/UserData";
+import { ensureHouseholdDefaults } from "@/lib/user-data";
+import { fetchJson } from "@/lib/http";
 
-const parseDisplayName = (displayName?: string | null): Pick<UserProfile, "firstName" | "lastName"> => {
-  if (!displayName) {
-    return { firstName: "", lastName: "" };
-  }
-  const [firstName, ...rest] = displayName.split(" ").filter(Boolean);
+const withDefaults = (data: UserData): UserData => {
   return {
-    firstName: firstName ?? "",
-    lastName: rest.join(" ") ?? "",
-  };
-};
-
-const withDefaults = (profile: UserProfile, data?: Partial<UserData>): UserData => {
-  const now = new Date().toISOString();
-  return {
-    profile: data?.profile ?? profile,
-    household: ensureHouseholdDefaults(data?.household ?? null),
-    donations66: data?.donations66 ?? [],
-    donations75: data?.donations75 ?? [],
-    services: data?.services ?? [],
-    energy: data?.energy ?? [],
-    schooling: data?.schooling ?? [],
-    createdAt: data?.createdAt ?? now,
-    updatedAt: data?.updatedAt ?? now,
+    ...data,
+    household: ensureHouseholdDefaults(data.household),
+    donations66: data.donations66 ?? [],
+    donations75: data.donations75 ?? [],
+    services: data.services ?? [],
+    energy: data.energy ?? [],
+    schooling: data.schooling ?? [],
   };
 };
 
@@ -42,48 +22,35 @@ export const useUserData = () => {
   const queryClient = useQueryClient();
 
   const query = useQuery({
-    queryKey: ["userData", user?.uid],
-    enabled: Boolean(user?.uid),
+    queryKey: ["userData", user?.id],
+    enabled: Boolean(user?.id),
     queryFn: async (): Promise<UserData> => {
-      if (!user?.uid) {
+      if (!user?.id) {
         throw new Error("Utilisateur non authentifié");
       }
-      const ref = doc(db, "users", user.uid);
-      const snapshot = await getDoc(ref);
-      const baseProfile: UserProfile = {
-        email: user.email ?? "",
-        ...parseDisplayName(user.displayName),
-      };
-
-      if (!snapshot.exists()) {
-        const localData = readLocalUserData();
-        const initial = mergeLocalDataWithProfile(baseProfile, localData);
-        await setDoc(ref, initial);
-        clearLocalUserData();
-        return initial;
-      }
-
-      const data = snapshot.data() as Partial<UserData>;
-      const mergedProfile = data.profile ?? baseProfile;
-      return withDefaults({ ...baseProfile, ...mergedProfile }, data);
+      const response = await fetchJson<{ data: UserData }>("/user-data");
+      return withDefaults(response.data);
     },
   });
 
   const mutation = useMutation({
     mutationFn: async (payload: Partial<UserData>) => {
-      if (!user?.uid) {
+      if (!user?.id) {
         throw new Error("Utilisateur non authentifié");
       }
-      const ref = doc(db, "users", user.uid);
-      const nextPayload: Partial<UserData> = {
-        ...payload,
-        updatedAt: new Date().toISOString(),
-      };
-      await setDoc(ref, nextPayload, { merge: true });
-      return nextPayload;
+      const response = await fetchJson<{ data: UserData }>("/user-data", {
+        method: "PATCH",
+        body: {
+          updates: {
+            ...payload,
+            updatedAt: new Date().toISOString(),
+          },
+        },
+      });
+      return withDefaults(response.data);
     },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["userData", user?.uid] });
+    onSuccess: (data) => {
+      queryClient.setQueryData(["userData", user?.id], data);
     },
   });
 

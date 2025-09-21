@@ -1,23 +1,22 @@
 import { createContext, useContext, useEffect, useMemo, useState, ReactNode } from "react";
-import {
-  User,
-  onAuthStateChanged,
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  signOut as firebaseSignOut,
-  updateProfile,
-} from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore";
-import { auth, db } from "@/lib/firebase";
-import {
-  mergeLocalDataWithProfile,
-  readLocalUserData,
-  clearLocalUserData,
-} from "@/lib/user-data";
+import { clearLocalUserData, mergeLocalDataWithProfile, readLocalUserData } from "@/lib/user-data";
 import { UserProfile } from "@/types/UserData";
+import { fetchJson } from "@/lib/http";
+
+interface SessionUser {
+  id: number;
+  email: string;
+  firstName: string;
+  lastName: string;
+}
+
+export interface AuthUser extends SessionUser {
+  uid: string;
+  displayName: string;
+}
 
 interface AuthContextValue {
-  user: User | null;
+  user: AuthUser | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (data: UserProfile & { password: string }) => Promise<void>;
@@ -27,42 +26,61 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      setUser(firebaseUser);
-      setLoading(false);
-    });
+    const loadSession = async () => {
+      try {
+        const response = await fetchJson<{ user: SessionUser }>("/session");
+        if (response?.user) {
+          setUser(formatUser(response.user));
+        } else {
+          setUser(null);
+        }
+      } catch (error) {
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    return unsubscribe;
+    void loadSession();
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    await signInWithEmailAndPassword(auth, email, password);
+    const response = await fetchJson<{ user: SessionUser }>("/auth-login", {
+      method: "POST",
+      body: { email, password },
+    });
+    setUser(formatUser(response.user));
   };
 
   const signUp = async ({ firstName, lastName, email, password }: UserProfile & { password: string }) => {
-    const credential = await createUserWithEmailAndPassword(auth, email, password);
-    if (firstName || lastName) {
-      await updateProfile(credential.user, {
-        displayName: `${firstName} ${lastName}`.trim(),
-      });
-    }
+    const localData = readLocalUserData();
     const profile: UserProfile = {
       firstName,
       lastName,
-      email: credential.user.email ?? email,
+      email,
     };
-    const localData = readLocalUserData();
     const initialData = mergeLocalDataWithProfile(profile, localData);
-    await setDoc(doc(db, "users", credential.user.uid), initialData);
+    const response = await fetchJson<{ user: SessionUser }>("/auth-register", {
+      method: "POST",
+      body: {
+        firstName,
+        lastName,
+        email,
+        password,
+        initialData,
+      },
+    });
     clearLocalUserData();
+    setUser(formatUser(response.user));
   };
 
   const signOut = async () => {
-    await firebaseSignOut(auth);
+    await fetchJson("/auth-logout", { method: "POST" });
+    setUser(null);
   };
 
   const value = useMemo(
@@ -85,4 +103,16 @@ export const useAuth = () => {
     throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
+};
+
+const formatUser = ({ id, email, firstName, lastName }: SessionUser): AuthUser => {
+  const displayName = `${firstName ?? ""} ${lastName ?? ""}`.trim();
+  return {
+    id,
+    uid: String(id),
+    email,
+    firstName,
+    lastName,
+    displayName,
+  };
 };

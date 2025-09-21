@@ -1,42 +1,36 @@
-import { deleteObject, getDownloadURL, ref, uploadBytes } from "firebase/storage";
-import { storage } from "./firebase";
-
-const getExtension = (file: File) => {
-  const [, subtype] = file.type.split("/");
-  if (!subtype) return "jpg";
-  return subtype.split("+")[0] || "jpg";
-};
-
-const uploadFile = async (path: string, file: File) => {
-  const storageRef = ref(storage, path);
-  const snapshot = await uploadBytes(storageRef, file, {
-    contentType: file.type || undefined,
+const fileToDataUrl = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        resolve(reader.result);
+      } else {
+        reject(new Error("Impossible de lire le fichier"));
+      }
+    };
+    reader.onerror = () => reject(reader.error ?? new Error("Erreur de lecture du fichier"));
+    reader.readAsDataURL(file);
   });
-  const url = await getDownloadURL(snapshot.ref);
-  return { url, path };
 };
 
 export const uploadReceiptPhoto = async (
-  userId: string,
-  receiptId: string,
+  _userId: string | number | null | undefined,
+  _receiptId: string,
   file: File
 ) => {
-  const extension = getExtension(file);
-  const path = `receipts/${userId}/${receiptId}-${Date.now()}.${extension}`;
-  return uploadFile(path, file);
+  const dataUrl = await fileToDataUrl(file);
+  return { url: dataUrl, path: null as string | null };
 };
 
 export const uploadServicePhoto = async (
-  userId: string,
-  expenseId: string,
+  _userId: string | number | null | undefined,
+  _expenseId: string,
   file: File
 ) => {
-  const extension = getExtension(file);
-  const path = `services/${userId}/${expenseId}-${Date.now()}.${extension}`;
-  return uploadFile(path, file);
+  const dataUrl = await fileToDataUrl(file);
+  return { url: dataUrl, path: null as string | null };
 };
 
-export const removeFromStorage = async (storagePath?: string | null) => {
-  if (!storagePath) return;
-  await deleteObject(ref(storage, storagePath));
+export const removeFromStorage = async (_storagePath?: string | null) => {
+  return Promise.resolve();
 };
