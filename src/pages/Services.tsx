@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ServiceExpense } from "@/types/ServiceExpense";
 import Header from "@/components/Header";
 import ServicesDashboard from "@/components/ServicesDashboard";
@@ -8,41 +8,44 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { useUserData } from "@/hooks/useUserData";
+import { useAuth } from "@/contexts/AuthContext";
+import { uploadServicePhoto, removeFromStorage } from "@/lib/storage";
+import { Loader2 } from "lucide-react";
+
+interface ServiceUpdateOptions {
+  file?: File | null;
+  removePhoto?: boolean;
+}
 
 const Services = () => {
-  const [expenses, setExpenses] = useState<ServiceExpense[]>([]);
   const [editing, setEditing] = useState<ServiceExpense | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const currentYear = new Date().getFullYear().toString();
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const { toast } = useToast();
+  const { user } = useAuth();
+  const { data, isLoading, updateSection, isUpdating } = useUserData();
+
+  const servicesExpenses = data?.services;
+  const expenses = useMemo(
+    () => servicesExpenses ?? [],
+    [servicesExpenses]
+  );
+
+  const years = useMemo(() => {
+    const list = [
+      ...expenses.map((r) => r.date.slice(0, 4)),
+      currentYear,
+    ];
+    return Array.from(new Set(list)).sort().reverse();
+  }, [expenses, currentYear]);
 
   useEffect(() => {
-    const stored = localStorage.getItem('pimpots-services');
-    if (stored) {
-      try {
-        setExpenses(JSON.parse(stored));
-      } catch (e) {
-        console.error('Error loading services from localStorage:', e);
-      }
+    if (years.length > 0 && !years.includes(selectedYear)) {
+      setSelectedYear(years[0]);
     }
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem('pimpots-services', JSON.stringify(expenses));
-  }, [expenses]);
-
-  const handleAdd = (exp: ServiceExpense) => setExpenses(prev => [...prev, exp]);
-  const handleUpdate = (exp: ServiceExpense) => {
-    setExpenses(prev => prev.map(e => e.id === exp.id ? exp : e));
-    setEditing(null);
-  };
-  const handleDelete = (id: string) => setExpenses(prev => prev.filter(e => e.id !== id));
-  const handleUpdatePhoto = (id: string, photo: string | null) => {
-    setExpenses(prev => prev.map(e => e.id === id ? { ...e, photo: photo || undefined } : e));
-  };
-
-  const years = Array.from(new Set([...expenses.map(r => r.date.slice(0,4)), currentYear])).sort().reverse();
+  }, [years, selectedYear]);
 
   const filtered = expenses.filter((e) => {
     const matchesYear = e.date.startsWith(selectedYear);
@@ -50,6 +53,120 @@ const Services = () => {
     const matchesSearch = text.includes(searchTerm.toLowerCase());
     return matchesYear && matchesSearch;
   });
+
+  const ensureUserId = () => {
+    if (!user?.uid) {
+      toast({
+        title: "Session expirée",
+        description: "Veuillez vous reconnecter pour continuer.",
+        variant: "destructive",
+      });
+      throw new Error("Utilisateur non connecté");
+    }
+    return user.uid;
+  };
+
+  const handleAdd = async (
+    expense: ServiceExpense,
+    options?: { file?: File | null }
+  ) => {
+    try {
+      const uid = ensureUserId();
+      let toSave: ServiceExpense = {
+        ...expense,
+        createdAt: expense.createdAt || new Date().toISOString(),
+      };
+      if (options?.file) {
+        const { url, path } = await uploadServicePhoto(uid, expense.id, options.file);
+        toSave = { ...toSave, photo: url, storagePath: path };
+      }
+      await updateSection("services", [...expenses, toSave]);
+      toast({
+        title: "Dépense ajoutée",
+        description: `${toSave.nature} enregistré pour ${toSave.provider}.`,
+      });
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Erreur lors de l'ajout",
+        description: "Impossible d'ajouter cette dépense.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleUpdate = async (
+    expense: ServiceExpense,
+    options?: ServiceUpdateOptions
+  ) => {
+    try {
+      const uid = ensureUserId();
+      const existing = expenses.find((e) => e.id === expense.id);
+      let nextExpense = { ...expense };
+
+      if ((options?.removePhoto || options?.file) && existing?.storagePath) {
+        await removeFromStorage(existing.storagePath);
+        nextExpense = { ...nextExpense, photo: null, storagePath: null };
+      }
+
+      if (options?.file) {
+        const { url, path } = await uploadServicePhoto(uid, expense.id, options.file);
+        nextExpense = { ...nextExpense, photo: url, storagePath: path };
+      }
+
+      const nextList = expenses.map((e) => (e.id === expense.id ? nextExpense : e));
+      await updateSection("services", nextList);
+      setEditing(null);
+      toast({
+        title: "Dépense mise à jour",
+        description: `${nextExpense.nature} modifiée pour ${nextExpense.provider}.`,
+      });
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Erreur lors de la mise à jour",
+        description: "Impossible de mettre à jour cette dépense.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      ensureUserId();
+      const target = expenses.find((e) => e.id === id);
+      if (target?.storagePath) {
+        await removeFromStorage(target.storagePath);
+      }
+      await updateSection(
+        "services",
+        expenses.filter((e) => e.id !== id)
+      );
+      toast({
+        title: "Dépense supprimée",
+        description: "La dépense a été retirée de la liste.",
+      });
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Suppression impossible",
+        description: "Une erreur est survenue lors de la suppression.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleUploadPhoto = async (id: string, file: File) => {
+    const expense = expenses.find((e) => e.id === id);
+    if (!expense) return;
+    await handleUpdate(expense, { file });
+  };
+
+  const handleDeletePhoto = async (id: string) => {
+    const expense = expenses.find((e) => e.id === id);
+    if (!expense) return;
+    await handleUpdate(expense, { removePhoto: true });
+  };
 
   const handleDownloadPDF = () => {
     if (filtered.length === 0) {
@@ -67,8 +184,8 @@ const Services = () => {
     const homeCapped = Math.min(homeTotal, 12000);
     const childMap: Record<string, {name:string; birth:string; amount:number}> = {};
     filtered.filter(e=>e.category==='childcare').forEach(e=>{
-      const key = `${e.childName||''}|${e.childBirthDate||''}`;
-      const entry = childMap[key] || {name: e.childName||'', birth: e.childBirthDate||'', amount:0};
+      const key = `${e.childName || ''}|${e.childBirthDate || ''}`;
+      const entry = childMap[key] || {name: e.childName || '', birth: e.childBirthDate || '', amount:0};
       entry.amount += net(e);
       childMap[key]=entry;
     });
@@ -77,7 +194,7 @@ const Services = () => {
     const credit = Math.round(homeCapped*0.5 + childTotalCapped*0.5);
 
     const childLines = Object.values(childMap)
-      .map(c => `<p>${c.name} (${new Date(c.birth).toLocaleDateString('fr-FR')}) : ${c.amount.toLocaleString('fr-FR')} €</p>`)
+      .map(c => `<p>${c.name} (${c.birth ? new Date(c.birth).toLocaleDateString('fr-FR') : ''}) : ${c.amount.toLocaleString('fr-FR')} €</p>`)
       .join("");
 
     const rows = filtered.map(e => {
@@ -116,6 +233,14 @@ const Services = () => {
     printWindow.focus();
     printWindow.print();
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -158,6 +283,7 @@ const Services = () => {
               initialData={editing || undefined}
               onUpdate={handleUpdate}
               onCancelEdit={() => setEditing(null)}
+              isSubmitting={isUpdating}
             />
           </div>
           <div>
@@ -165,7 +291,8 @@ const Services = () => {
               expenses={filtered}
               onDelete={handleDelete}
               onEdit={(e) => setEditing(e)}
-              onUpdatePhoto={handleUpdatePhoto}
+              onUploadPhoto={handleUploadPhoto}
+              onDeletePhoto={handleDeletePhoto}
             />
           </div>
         </div>

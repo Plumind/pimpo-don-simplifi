@@ -1,8 +1,14 @@
 import { Home, Users, HandCoins, HandPlatter, GraduationCap, Leaf } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 const MobileNav = () => {
   const location = useLocation();
+  const { user } = useAuth();
+
+  if (!user) {
+    return null;
+  }
   const items = [
     { to: "/", icon: Home, label: "Aperçu" },
     { to: "/foyer", icon: Users, label: "Foyer fiscal" },

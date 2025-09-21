@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import Header from "@/components/Header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,37 +9,41 @@ import { Slider } from "@/components/ui/slider";
 import { Household } from "@/types/Household";
 import { calculateParts, calculateTmi, taxBrackets } from "@/lib/tax";
 import { useToast } from "@/hooks/use-toast";
+import { useUserData } from "@/hooks/useUserData";
+import { Loader2 } from "lucide-react";
+
+const defaultHousehold: Household = {
+  status: "marie",
+  members: [
+    { name: "", salary: 0 },
+    { name: "", salary: 0 },
+  ],
+  children: 0,
+  otherIncome: 0,
+};
 
 const HouseholdPage = () => {
   const { toast } = useToast();
-  const [data, setData] = useState<Household>({
-    status: "marie",
-    members: [
-      { name: "", salary: 0 },
-      { name: "", salary: 0 },
-    ],
-    children: 0,
-    otherIncome: 0,
-  });
+  const { data, isLoading, updateSection, isUpdating } = useUserData();
+  const [form, setForm] = useState<Household>(defaultHousehold);
 
   useEffect(() => {
-    const stored = localStorage.getItem("pimpots-household");
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        setData({ status: "marie", otherIncome: 0, ...parsed });
-      } catch (e) {
-        console.error("Error loading household from localStorage:", e);
+    if (data?.household) {
+      const merged = { ...defaultHousehold, ...data.household };
+      const members = [...merged.members];
+      while (members.length < 2) {
+        members.push({ name: "", salary: 0 });
       }
+      setForm({ ...merged, members });
     }
-  }, []);
+  }, [data?.household]);
 
   const handleChangeMember = (
     index: number,
     field: "name" | "salary",
     value: string
   ) => {
-    setData((prev) => {
+    setForm((prev) => {
       const members = [...prev.members];
       const member = {
         ...members[index],
@@ -50,19 +54,28 @@ const HouseholdPage = () => {
     });
   };
 
-  const handleSave = () => {
-    localStorage.setItem("pimpots-household", JSON.stringify(data));
-    toast({ title: "Foyer sauvegardé" });
+  const handleSave = async () => {
+    try {
+      await updateSection("household", form);
+      toast({ title: "Foyer sauvegardé" });
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Erreur",
+        description: "Impossible d'enregistrer le foyer.",
+        variant: "destructive",
+      });
+    }
   };
 
   const totalIncome =
-    data.members.reduce((s, m) => s + (m.salary || 0), 0) +
-    (data.otherIncome || 0);
+    form.members.reduce((s, m) => s + (m.salary || 0), 0) +
+    (form.otherIncome || 0);
   const adults =
-    data.status === "concubinage"
+    form.status === "concubinage"
       ? 1
-      : Math.max(1, data.members.filter((m) => m.name || m.salary).length);
-  const parts = calculateParts(adults, data.children);
+      : Math.max(1, form.members.filter((m) => m.name || m.salary).length);
+  const parts = calculateParts(adults, form.children);
   const tmi = calculateTmi(totalIncome, parts);
   const taxable = totalIncome / parts;
   const bracketIndex = taxBrackets.findIndex((b) => taxable <= b.limit);
@@ -72,6 +85,14 @@ const HouseholdPage = () => {
   const rawMax =
     currentBracket.limit === Infinity ? Infinity : currentBracket.limit * parts;
   const maxSlider = Number.isFinite(rawMax) ? rawMax : totalIncome * 2;
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -87,7 +108,7 @@ const HouseholdPage = () => {
             <CardTitle>Informations du foyer</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {data.members.map((m, i) => (
+            {form.members.map((m, i) => (
               <div key={i} className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-1">
                   <Label htmlFor={`name-${i}`}>{`Nom de la personne ${i + 1}`}</Label>
@@ -119,9 +140,9 @@ const HouseholdPage = () => {
                 id="other-income"
                 type="number"
                 placeholder="5000"
-                value={data.otherIncome || ""}
+                value={form.otherIncome || ""}
                 onChange={(e) =>
-                  setData((prev) => ({
+                  setForm((prev) => ({
                     ...prev,
                     otherIncome: Number(e.target.value),
                   }))
@@ -137,9 +158,9 @@ const HouseholdPage = () => {
                 id="children"
                 type="number"
                 placeholder="0"
-                value={data.children}
+                value={form.children}
                 onChange={(e) =>
-                  setData((prev) => ({ ...prev, children: Number(e.target.value) }))
+                  setForm((prev) => ({ ...prev, children: Number(e.target.value) }))
                 }
               />
               <p className="text-xs text-muted-foreground">
@@ -150,9 +171,9 @@ const HouseholdPage = () => {
               <Label>Situation familiale</Label>
               <RadioGroup
                 className="flex gap-4"
-                value={data.status}
+                value={form.status}
                 onValueChange={(val) =>
-                  setData((prev) => ({ ...prev, status: val as Household["status"] }))
+                  setForm((prev) => ({ ...prev, status: val as Household["status"] }))
                 }
               >
                 <div className="flex items-center space-x-2">
@@ -199,21 +220,14 @@ const HouseholdPage = () => {
                         : "∞"}
                     </span>
                   </div>
-                  <p className="text-xs text-muted-foreground text-center mt-2">
-                    Revenu du foyer : {totalIncome.toLocaleString("fr-FR")} €
-                  </p>
                 </div>
               </div>
             )}
-            <Button onClick={handleSave} className="w-full">
-              Sauvegarder
+            <Button onClick={handleSave} disabled={isUpdating}>
+              {isUpdating ? "Enregistrement..." : "Sauvegarder"}
             </Button>
           </CardContent>
         </Card>
-
-        <p className="text-sm text-muted-foreground text-center">
-          Il existe des situations spéciales qui modifient le calcul des parts fiscales (parent isolé, invalidité, majoration pour certains adultes). Consulter la brochure pratique de la déclaration des revenus pour plus d'informations.
-        </p>
       </main>
     </div>
   );

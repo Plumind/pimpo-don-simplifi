@@ -9,5 +9,6 @@ export interface ServiceExpense {
   childName?: string;
   childBirthDate?: string; // Format YYYY-MM-DD
   photo?: string | null;
+  storagePath?: string | null;
   createdAt: string;
 }

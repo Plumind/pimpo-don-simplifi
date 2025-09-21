@@ -1,8 +1,14 @@
 import logo from "@/assets/logo_pimpots.png";
 import { Link, useLocation } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
+import { LogOut } from "lucide-react";
 
 const Header = () => {
   const location = useLocation();
+  const { user, signOut } = useAuth();
+  const displayName = user?.displayName?.trim();
+  const subtitle = displayName || user?.email || "";
   return (
     <header className="bg-card border-b border-border">
       <div className="container mx-auto px-4 py-6">
@@ -18,7 +24,7 @@ const Header = () => {
               </p>
             </div>
           </Link>
-          <nav className="hidden gap-4 sm:flex">
+          <nav className="hidden items-center gap-4 sm:flex">
             <Link
               to="/"
               className={`text-sm font-medium hover:underline ${location.pathname === '/' ? 'text-primary' : 'text-foreground'}`}
@@ -55,6 +61,24 @@ const Header = () => {
             >
               Scolarité
             </Link>
+            <div className="ml-4 flex items-center gap-3">
+              {subtitle ? (
+                <span className="text-sm text-muted-foreground">{subtitle}</span>
+              ) : null}
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                onClick={() => {
+                  signOut().catch(() => {
+                    console.error("Erreur lors de la déconnexion");
+                  });
+                }}
+              >
+                <LogOut className="h-4 w-4" />
+                Se déconnecter
+              </Button>
+            </div>
           </nav>
         </div>
       </div>

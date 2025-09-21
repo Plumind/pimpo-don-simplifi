@@ -4,6 +4,7 @@ export interface Receipt {
   organism: string;
   amount: number;
   photo?: string | null;
+  storagePath?: string | null;
   createdAt: string;
 }
 

@@ -7,12 +7,13 @@ import { useRef } from "react";
 
 interface ServicesListProps {
   expenses: ServiceExpense[];
-  onDelete: (id: string) => void;
+  onDelete: (id: string) => void | Promise<void>;
   onEdit: (expense: ServiceExpense) => void;
-  onUpdatePhoto: (id: string, photo: string | null) => void;
+  onUploadPhoto: (id: string, file: File) => void | Promise<void>;
+  onDeletePhoto: (id: string) => void | Promise<void>;
 }
 
-const ServicesList = ({ expenses, onDelete, onEdit, onUpdatePhoto }: ServicesListProps) => {
+const ServicesList = ({ expenses, onDelete, onEdit, onUploadPhoto, onDeletePhoto }: ServicesListProps) => {
   const sorted = [...expenses].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
@@ -24,19 +25,16 @@ const ServicesList = ({ expenses, onDelete, onEdit, onUpdatePhoto }: ServicesLis
     });
   };
 
-  const handlePhotoChange = (id: string, e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoChange = async (id: string, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const existing = expenses.find(r => r.id === id)?.photo;
+    const existing = expenses.find((r) => r.id === id)?.photo;
     if (existing && !confirm("Remplacer la photo existante ?")) {
       e.target.value = "";
       return;
     }
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      onUpdatePhoto(id, reader.result as string);
-    };
-    reader.readAsDataURL(file);
+    await onUploadPhoto(id, file);
+    e.target.value = "";
   };
 
   const handleViewPhoto = (photo?: string | null) => {
@@ -44,9 +42,9 @@ const ServicesList = ({ expenses, onDelete, onEdit, onUpdatePhoto }: ServicesLis
   };
 
   const handleDeletePhoto = (id: string) => {
-    const existing = expenses.find(r => r.id === id)?.photo;
+    const existing = expenses.find((r) => r.id === id)?.photo;
     if (existing && confirm("Supprimer la photo ?")) {
-      onUpdatePhoto(id, null);
+      onDeletePhoto(id);
     }
   };
 
@@ -135,13 +133,15 @@ const ServicesList = ({ expenses, onDelete, onEdit, onUpdatePhoto }: ServicesLis
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => {
-                        if (confirm("Supprimer cette dépense ?")) onDelete(exp.id);
-                      }}
-                    >
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => {
+                      if (confirm("Supprimer cette dépense ?")) {
+                        void onDelete(exp.id);
+                      }
+                    }}
+                  >
                       <Trash className="h-4 w-4 text-destructive" />
                     </Button>
                   </div>

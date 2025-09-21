@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Receipt as ReceiptType } from "@/types/Receipt";
 import Dashboard from "@/components/Dashboard";
 import AddReceiptForm from "@/components/AddReceiptForm";
@@ -13,82 +13,170 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { useUserData } from "@/hooks/useUserData";
+import { useAuth } from "@/contexts/AuthContext";
+import { uploadReceiptPhoto, removeFromStorage } from "@/lib/storage";
+import { Loader2 } from "lucide-react";
+
+interface ReceiptUpdateOptions {
+  file?: File | null;
+  removePhoto?: boolean;
+}
 
 const Donations66 = () => {
-  const [receipts, setReceipts] = useState<ReceiptType[]>([]);
   const [editingReceipt, setEditingReceipt] = useState<ReceiptType | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const currentYear = new Date().getFullYear().toString();
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const { toast } = useToast();
+  const { user } = useAuth();
+  const { data, isLoading, updateSection, isUpdating } = useUserData();
 
-  // Load receipts from localStorage on component mount
+  const donations66 = data?.donations66;
+  const receipts = useMemo(
+    () => donations66 ?? [],
+    [donations66]
+  );
+
+  const years = useMemo(() => {
+    const list = [
+      ...receipts.map((r) => r.date.slice(0, 4)),
+      currentYear,
+    ];
+    return Array.from(new Set(list)).sort().reverse();
+  }, [receipts, currentYear]);
+
   useEffect(() => {
-    const storedReceipts = localStorage.getItem('pimpots-receipts');
-    if (storedReceipts) {
-      try {
-        setReceipts(JSON.parse(storedReceipts));
-      } catch (error) {
-        console.error('Error loading receipts from localStorage:', error);
-      }
-    } else {
-      // Add some sample data for demonstration
-      const sampleReceipts: ReceiptType[] = [
-        {
-          id: "1",
-          date: "2024-12-15",
-          organism: "Médecins Sans Frontières",
-          amount: 150,
-          createdAt: new Date().toISOString()
-        },
-        {
-          id: "2", 
-          date: "2024-11-20",
-          organism: "Restos du Cœur",
-          amount: 75,
-          createdAt: new Date().toISOString()
-        },
-        {
-          id: "3",
-          date: "2024-10-05",
-          organism: "Croix-Rouge Française", 
-          amount: 200,
-          createdAt: new Date().toISOString()
-        }
-      ];
-      setReceipts(sampleReceipts);
+    if (years.length > 0 && !years.includes(selectedYear)) {
+      setSelectedYear(years[0]);
     }
-  }, []);
-
-  // Save receipts to localStorage whenever receipts change
-  useEffect(() => {
-    localStorage.setItem('pimpots-receipts', JSON.stringify(receipts));
-  }, [receipts]);
-
-  const handleAddReceipt = (newReceipt: ReceiptType) => {
-    setReceipts(prev => [...prev, newReceipt]);
-  };
-
-  const handleUpdateReceipt = (updated: ReceiptType) => {
-    setReceipts(prev => prev.map(r => (r.id === updated.id ? updated : r)));
-    setEditingReceipt(null);
-  };
-
-  const handleDeleteReceipt = (id: string) => {
-    setReceipts(prev => prev.filter(r => r.id !== id));
-  };
-
-  const handleUpdateReceiptPhoto = (id: string, photo: string | null) => {
-    setReceipts(prev => prev.map(r => (r.id === id ? { ...r, photo: photo || undefined } : r)));
-  };
-
-  const years = Array.from(new Set([...receipts.map(r => r.date.slice(0, 4)), currentYear])).sort().reverse();
+  }, [years, selectedYear]);
 
   const filteredReceipts = receipts.filter((r) => {
     const matchesYear = r.date.startsWith(selectedYear);
-    const matchesSearch = r.organism.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = r.organism
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase());
     return matchesYear && matchesSearch;
   });
+
+  const ensureUserId = () => {
+    if (!user?.uid) {
+      toast({
+        title: "Session expirée",
+        description: "Veuillez vous reconnecter pour continuer.",
+        variant: "destructive",
+      });
+      throw new Error("Utilisateur non connecté");
+    }
+    return user.uid;
+  };
+
+  const handleAddReceipt = async (
+    newReceipt: ReceiptType,
+    options?: { file?: File | null }
+  ) => {
+    try {
+      const uid = ensureUserId();
+      let receiptToSave: ReceiptType = {
+        ...newReceipt,
+        createdAt: newReceipt.createdAt || new Date().toISOString(),
+      };
+      if (options?.file) {
+        const { url, path } = await uploadReceiptPhoto(uid, newReceipt.id, options.file);
+        receiptToSave = {
+          ...receiptToSave,
+          photo: url,
+          storagePath: path,
+        };
+      }
+      await updateSection("donations66", [...receipts, receiptToSave]);
+      toast({
+        title: "Reçu ajouté !",
+        description: `Don de ${receiptToSave.amount}€ à ${receiptToSave.organism} enregistré.`,
+      });
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Erreur lors de l'ajout",
+        description: "Impossible d'ajouter ce reçu pour le moment.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleUpdateReceipt = async (
+    updated: ReceiptType,
+    options?: ReceiptUpdateOptions
+  ) => {
+    try {
+      const uid = ensureUserId();
+      const existing = receipts.find((r) => r.id === updated.id);
+      let nextReceipt = { ...updated };
+
+      if ((options?.removePhoto || options?.file) && existing?.storagePath) {
+        await removeFromStorage(existing.storagePath);
+        nextReceipt = { ...nextReceipt, photo: null, storagePath: null };
+      }
+
+      if (options?.file) {
+        const { url, path } = await uploadReceiptPhoto(uid, updated.id, options.file);
+        nextReceipt = { ...nextReceipt, photo: url, storagePath: path };
+      }
+
+      const nextList = receipts.map((r) => (r.id === updated.id ? nextReceipt : r));
+      await updateSection("donations66", nextList);
+      setEditingReceipt(null);
+      toast({
+        title: "Reçu mis à jour",
+        description: `${nextReceipt.organism} modifié avec succès.`,
+      });
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Erreur lors de la mise à jour",
+        description: "Impossible de mettre à jour ce reçu.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteReceipt = async (id: string) => {
+    try {
+      ensureUserId();
+      const target = receipts.find((r) => r.id === id);
+      if (target?.storagePath) {
+        await removeFromStorage(target.storagePath);
+      }
+      await updateSection(
+        "donations66",
+        receipts.filter((r) => r.id !== id)
+      );
+      toast({
+        title: "Reçu supprimé",
+        description: "Le reçu a été retiré de votre historique.",
+      });
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Suppression impossible",
+        description: "Une erreur est survenue lors de la suppression.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleUploadPhoto = async (id: string, file: File) => {
+    const receipt = receipts.find((r) => r.id === id);
+    if (!receipt) return;
+    await handleUpdateReceipt(receipt, { file });
+  };
+
+  const handleDeletePhoto = async (id: string) => {
+    const receipt = receipts.find((r) => r.id === id);
+    if (!receipt) return;
+    await handleUpdateReceipt(receipt, { removePhoto: true });
+  };
 
   const handleDownloadPDF = () => {
     if (filteredReceipts.length === 0) {
@@ -148,6 +236,14 @@ const Donations66 = () => {
     printWindow.print();
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
       <div className="text-center py-6">
@@ -187,6 +283,7 @@ const Donations66 = () => {
             initialData={editingReceipt || undefined}
             onUpdateReceipt={handleUpdateReceipt}
             onCancelEdit={() => setEditingReceipt(null)}
+            isSubmitting={isUpdating}
           />
         </div>
 
@@ -195,7 +292,8 @@ const Donations66 = () => {
             receipts={filteredReceipts}
             onDeleteReceipt={handleDeleteReceipt}
             onEditReceipt={(receipt) => setEditingReceipt(receipt)}
-            onUpdatePhoto={handleUpdateReceiptPhoto}
+            onUploadPhoto={handleUploadPhoto}
+            onDeletePhoto={handleDeletePhoto}
           />
         </div>
       </div>

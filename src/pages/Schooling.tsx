@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Header from "@/components/Header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Student } from "@/types/Student";
+import { useUserData } from "@/hooks/useUserData";
+import { useToast } from "@/hooks/use-toast";
+import { Loader2 } from "lucide-react";
 
 const LEVELS = [
   { value: "college", label: "Collégien", amount: 61, box: "7EA" },
@@ -20,43 +23,74 @@ const LEVELS = [
 ];
 
 const Schooling = () => {
-  const [students, setStudents] = useState<Student[]>([]);
+  const { data, isLoading, updateSection, isUpdating } = useUserData();
+  const { toast } = useToast();
+  const students = data?.schooling ?? [];
   const [form, setForm] = useState<Omit<Student, "id">>({
     name: "",
     birthDate: "",
     level: "college",
   });
 
-  useEffect(() => {
-    const stored = localStorage.getItem("pimpots-schooling");
-    if (stored) {
-      try {
-        setStudents(JSON.parse(stored));
-      } catch (e) {
-        console.error("Error loading schooling from localStorage:", e);
-      }
+  const addStudent = async () => {
+    if (!form.name || !form.birthDate) {
+      toast({
+        title: "Champs manquants",
+        description: "Nom et date de naissance requis.",
+        variant: "destructive",
+      });
+      return;
     }
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem("pimpots-schooling", JSON.stringify(students));
-  }, [students]);
-
-  const addStudent = () => {
-    if (!form.name || !form.birthDate) return;
     const newStudent: Student = { id: Date.now().toString(), ...form };
-    setStudents((prev) => [...prev, newStudent]);
-    setForm({ name: "", birthDate: "", level: "college" });
+    try {
+      await updateSection("schooling", [...students, newStudent]);
+      setForm({ name: "", birthDate: "", level: "college" });
+      toast({
+        title: "Enfant ajouté",
+        description: `${newStudent.name} est enregistré.`,
+      });
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Erreur",
+        description: "Impossible d'ajouter cet enfant.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const removeStudent = (id: string) => {
-    setStudents((prev) => prev.filter((s) => s.id !== id));
+  const removeStudent = async (id: string) => {
+    try {
+      await updateSection(
+        "schooling",
+        students.filter((s) => s.id !== id)
+      );
+      toast({
+        title: "Enfant supprimé",
+        description: "L'entrée a été retirée.",
+      });
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Suppression impossible",
+        description: "Une erreur est survenue.",
+        variant: "destructive",
+      });
+    }
   };
 
   const total = students.reduce((sum, s) => {
     const lvl = LEVELS.find((l) => l.value === s.level)!;
     return sum + lvl.amount;
   }, 0);
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -112,7 +146,9 @@ const Schooling = () => {
                 </SelectContent>
               </Select>
             </div>
-            <Button onClick={addStudent}>Ajouter</Button>
+            <Button onClick={addStudent} disabled={isUpdating}>
+              {isUpdating ? "Enregistrement..." : "Ajouter"}
+            </Button>
           </CardContent>
         </Card>
 
@@ -137,6 +173,7 @@ const Schooling = () => {
                         variant="destructive"
                         size="sm"
                         onClick={() => removeStudent(s.id)}
+                        disabled={isUpdating}
                       >
                         Supprimer
                       </Button>
