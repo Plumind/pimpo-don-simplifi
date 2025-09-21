@@ -16,7 +16,7 @@ const Login = () => {
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const from = (location.state as { from?: { pathname?: string } } | undefined)?.from?.pathname ?? "/";
+  const from = (location.state as { from?: { pathname?: string } } | undefined)?.from?.pathname ?? "/app";
 
   useEffect(() => {
     if (!loading && user) {
