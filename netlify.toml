@@ -4,3 +4,4 @@
 
 [build.environment]
   NODE_VERSION = "18"
+  NETLIFY_POSTGRES_URL = "postgresql://local-memory"
