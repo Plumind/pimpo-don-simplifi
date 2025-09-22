@@ -1,15 +1,20 @@
-const connectionString =
+const FALLBACK_CONNECTION_STRING = "postgresql://local-memory";
+
+const providedConnectionString =
   process.env.NETLIFY_POSTGRES_URL ||
   process.env.DATABASE_URL ||
   process.env.NEON_DATABASE_URL;
 
-if (!connectionString) {
-  throw new Error(
-    "Database connection string missing. Set NETLIFY_POSTGRES_URL, DATABASE_URL or NEON_DATABASE_URL."
+if (!providedConnectionString) {
+  console.warn(
+    "[db] No database connection string configured. Falling back to the in-memory Postgres stub. " +
+      "Set NETLIFY_POSTGRES_URL, DATABASE_URL or NEON_DATABASE_URL to connect to a persistent database."
   );
 }
 
-const MEMORY_URL_PREFIXES = ["postgresql://local-memory", "postgres://local-memory"];
+const connectionString = providedConnectionString ?? FALLBACK_CONNECTION_STRING;
+
+const MEMORY_URL_PREFIXES = [FALLBACK_CONNECTION_STRING, "postgres://local-memory"];
 const useInMemory = MEMORY_URL_PREFIXES.some((prefix) =>
   connectionString.startsWith(prefix)
 );
