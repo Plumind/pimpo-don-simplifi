@@ -20,7 +20,8 @@ const Header = () => {
   ];
 
   const isActive = (path: string) =>
-    location.pathname === path || location.pathname.startsWith(`${path}/`);
+    location.pathname === path ||
+    (path !== "/app" && location.pathname.startsWith(`${path}/`));
 
   return (
     <header className="bg-card border-b border-border">

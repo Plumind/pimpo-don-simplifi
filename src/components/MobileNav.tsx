@@ -20,7 +20,8 @@ const MobileNav = () => {
   ];
 
   const isActive = (path: string) =>
-    location.pathname === path || location.pathname.startsWith(`${path}/`);
+    location.pathname === path ||
+    (path !== "/app" && location.pathname.startsWith(`${path}/`));
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 flex justify-around border-t border-border bg-card py-2 sm:hidden">
