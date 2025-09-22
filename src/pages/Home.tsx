@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import {
   ArrowRight,
   CalendarCheck,
@@ -12,16 +12,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import {
-  OnboardingProfile,
-  readOnboardingProfile,
-  saveOnboardingProfile,
-} from "@/lib/onboarding";
 import { LOCAL_STORAGE_KEYS } from "@/lib/user-data";
 import { Household, MaritalStatus } from "@/types/Household";
 import { calculateIncomeTax, calculateParts } from "@/lib/tax";
+import logo from "@/assets/logo_pimpots.png";
 
 const defaultHousehold: Household = {
   status: "marie",
@@ -37,17 +32,18 @@ const heroHighlights = [
   {
     icon: CalendarCheck,
     title: "Suivi annuel",
-    description: "Centralisez vos dons, dépenses et crédits d'impôt toute l'année.",
+    description: "Centralisez vos dons, services à la personne et dépenses énergétiques tout au long de l'année.",
   },
   {
     icon: ShieldCheck,
     title: "Données sécurisées",
-    description: "Vos informations sont sécurisées et prêtes à être synchronisées dans Neon via Netlify.",
+    description: "Vos informations sont sécurisées et conservées dans une base de données protégée.",
   },
   {
     icon: LineChart,
     title: "Projection instantanée",
-    description: "Visualisez l'impact de votre foyer fiscal en temps réel.",
+    description:
+      "Visualisez l'impôt annuel que vous avez à payer, ajusté en fonction de vos déductions et remboursements.",
   },
 ];
 
@@ -78,20 +74,7 @@ const parseStoredHousehold = (value: string | null): Household => {
 };
 
 const Home = () => {
-  const navigate = useNavigate();
-  const { toast } = useToast();
   const { user } = useAuth();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [accountForm, setAccountForm] = useState<OnboardingProfile>(() => {
-    const stored = readOnboardingProfile();
-    return (
-      stored ?? {
-        firstName: "",
-        lastName: "",
-        email: "",
-      }
-    );
-  });
   const [household, setHousehold] = useState<Household>(() => {
     if (typeof window === "undefined") {
       return defaultHousehold;
@@ -125,37 +108,6 @@ const Home = () => {
     return Math.round(calculateIncomeTax(totalIncome, parts));
   }, [totalIncome, parts]);
 
-  const handleAccountSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (user) {
-      navigate("/app");
-      return;
-    }
-    setIsSubmitting(true);
-    try {
-      const payload: OnboardingProfile = {
-        firstName: accountForm.firstName.trim(),
-        lastName: accountForm.lastName.trim(),
-        email: accountForm.email.trim(),
-      };
-      await saveOnboardingProfile(payload);
-      toast({
-        title: "Presque terminé !",
-        description: "Choisissez un mot de passe pour finaliser votre inscription.",
-      });
-      navigate("/inscription", { state: { prefill: payload } });
-    } catch (error) {
-      console.error(error);
-      toast({
-        title: "Inscription impossible",
-        description: "Une erreur est survenue. Veuillez réessayer.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   const handleMemberChange = (index: number, field: "name" | "salary", value: string) => {
     setHousehold((prev) => {
       const members = [...prev.members];
@@ -177,8 +129,9 @@ const Home = () => {
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-card/60 backdrop-blur">
         <div className="container mx-auto flex items-center justify-between px-4 py-4">
-          <Link to="/" className="text-lg font-semibold text-primary">
-            Pimpôts
+          <Link to="/" className="flex items-center gap-2 text-primary">
+            <img src={logo} alt="Pimpôts" className="h-10 w-auto" />
+            <span className="text-lg font-semibold">Pimpôts</span>
           </Link>
           <div className="flex items-center gap-3">
             {user ? (
@@ -191,7 +144,7 @@ const Home = () => {
                   <Link to="/connexion">Se connecter</Link>
                 </Button>
                 <Button asChild>
-                  <Link to="#ouvrir-compte">Ouvrir un compte</Link>
+                  <Link to="/inscription">Ouvrir un compte</Link>
                 </Button>
               </>
             )}
@@ -201,8 +154,8 @@ const Home = () => {
 
       <main className="space-y-20 pb-20">
         <section className="bg-muted/30">
-          <div className="container mx-auto grid gap-12 px-4 py-16 lg:grid-cols-[1.2fr_1fr]">
-            <div className="space-y-6">
+          <div className="container mx-auto px-4 py-16">
+            <div className="mx-auto max-w-4xl space-y-6">
               <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-1 text-sm font-medium text-primary">
                 <ShieldCheck className="h-4 w-4" />
                 Déclarez vos avantages fiscaux sans stress
@@ -211,8 +164,9 @@ const Home = () => {
                 Le compagnon qui simplifie votre déclaration d'impôts
               </h1>
               <p className="max-w-2xl text-lg text-muted-foreground">
-                Enregistrez vos dons, vos services à la personne et vos dépenses énergétiques au fil de l'année.
-                Lorsque vous êtes prêt, synchronisez votre espace Netlify avec Neon pour conserver toutes vos informations.
+                Enregistrez vos dons, vos services à la personne et vos dépenses énergétiques au fil de l'année. Lors de
+                votre déclaration d'impôts annuelle, vous saurez instantanément quel montant renseigner dans quelle case,
+                et pourrez télécharger facilement tous vos justificatifs.
               </p>
               <div className="grid gap-4 sm:grid-cols-2">
                 {heroHighlights.map(({ icon: Icon, title, description }) => (
@@ -227,79 +181,7 @@ const Home = () => {
                   </div>
                 ))}
               </div>
-              <div className="flex flex-wrap gap-3">
-                <Button asChild size="lg">
-                  <Link to="#ouvrir-compte" className="flex items-center gap-2">
-                    Je crée mon compte
-                    <ArrowRight className="h-4 w-4" />
-                  </Link>
-                </Button>
-                <Button variant="outline" size="lg" asChild>
-                  <Link to="/connexion">J'ai déjà un compte</Link>
-                </Button>
-              </div>
             </div>
-
-            <Card id="ouvrir-compte" className="shadow-lg">
-              <CardHeader>
-                <CardTitle>Ouvrir un compte</CardTitle>
-                <CardDescription>
-                  Renseignez vos informations pour finaliser votre inscription et relier automatiquement votre foyer à Neon.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form className="space-y-4" onSubmit={handleAccountSubmit}>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="firstName">Prénom</Label>
-                      <Input
-                        id="firstName"
-                        value={accountForm.firstName}
-                        onChange={(event) =>
-                          setAccountForm((prev) => ({ ...prev, firstName: event.target.value }))
-                        }
-                        autoComplete="given-name"
-                        required
-                        disabled={Boolean(user)}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="lastName">Nom</Label>
-                      <Input
-                        id="lastName"
-                        value={accountForm.lastName}
-                        onChange={(event) =>
-                          setAccountForm((prev) => ({ ...prev, lastName: event.target.value }))
-                        }
-                        autoComplete="family-name"
-                        required
-                        disabled={Boolean(user)}
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Adresse mail</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={accountForm.email}
-                      onChange={(event) =>
-                        setAccountForm((prev) => ({ ...prev, email: event.target.value }))
-                      }
-                      autoComplete="email"
-                      required
-                      disabled={Boolean(user)}
-                    />
-                  </div>
-                  <Button type="submit" className="w-full" disabled={isSubmitting || Boolean(user)}>
-                    {user ? "Vous êtes déjà connecté" : "Continuer"}
-                  </Button>
-                  <p className="text-sm text-muted-foreground">
-                    Vous serez redirigé pour choisir un mot de passe sécurisé avant que vos données ne soient synchronisées.
-                  </p>
-                </form>
-              </CardContent>
-            </Card>
           </div>
         </section>
 
