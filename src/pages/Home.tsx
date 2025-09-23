@@ -26,6 +26,7 @@ const defaultHousehold: Household = {
   ],
   children: 2,
   otherIncome: 2000,
+  withholdingMonthly: 400,
 };
 
 const heroHighlights = [
@@ -66,6 +67,10 @@ const parseStoredHousehold = (value: string | null): Household => {
       children: typeof parsed.children === "number" ? parsed.children : defaultHousehold.children,
       otherIncome:
         typeof parsed.otherIncome === "number" ? parsed.otherIncome : defaultHousehold.otherIncome,
+      withholdingMonthly:
+        typeof parsed.withholdingMonthly === "number"
+          ? parsed.withholdingMonthly
+          : defaultHousehold.withholdingMonthly,
     } satisfies Household;
   } catch (error) {
     console.error("Failed to parse stored household", error);
@@ -128,22 +133,22 @@ const Home = () => {
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-card/60 backdrop-blur">
-        <div className="container mx-auto flex items-center justify-between px-4 py-4">
-          <Link to="/" className="flex items-center gap-2 text-primary">
+        <div className="container mx-auto flex flex-wrap items-center justify-between gap-3 px-4 py-4">
+          <Link to="/" className="flex items-center gap-2 text-primary flex-shrink-0">
             <img src={logo} alt="Pimpôts" className="h-10 w-auto" />
             <span className="text-lg font-semibold">Pimpôts</span>
           </Link>
-          <div className="flex items-center gap-3">
+          <div className="flex w-full items-center gap-3 sm:w-auto sm:justify-end">
             {user ? (
               <Button variant="ghost" asChild>
                 <Link to="/app">Accéder à mon espace</Link>
               </Button>
             ) : (
               <>
-                <Button variant="ghost" asChild>
+                <Button variant="ghost" asChild className="flex-1 sm:flex-none">
                   <Link to="/connexion">Se connecter</Link>
                 </Button>
-                <Button asChild>
+                <Button asChild className="flex-1 sm:flex-none">
                   <Link to="/inscription">Ouvrir un compte</Link>
                 </Button>
               </>

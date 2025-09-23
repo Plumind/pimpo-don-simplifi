@@ -5,13 +5,23 @@ import { TrendingUp, Euro, FileText } from "lucide-react";
 interface DashboardProps {
   receipts: ReceiptType[];
   selectedYear: string;
+  appliedReduction?: number;
 }
 
-const OtherDashboard = ({ receipts, selectedYear }: DashboardProps) => {
+const OtherDashboard = ({ receipts, selectedYear, appliedReduction }: DashboardProps) => {
   const totalAmount = receipts.reduce((sum, receipt) => sum + receipt.amount, 0);
   const base75 = Math.min(totalAmount, 2000);
   const base66 = Math.max(totalAmount - 2000, 0);
-  const taxReduction = Math.round(base75 * 0.75 + base66 * 0.66);
+  const estimatedReduction = Math.round(base75 * 0.75 + base66 * 0.66);
+  const effectiveReduction = Math.min(
+    appliedReduction ?? estimatedReduction,
+    estimatedReduction
+  );
+  const isCapped =
+    appliedReduction !== undefined && effectiveReduction < estimatedReduction;
+  const reductionLabel = isCapped
+    ? "réduction plafonnée par l'impôt dû"
+    : "réduction estimée (75% jusqu'à 2 000 €)";
 
   return (
     <div className="space-y-6">
@@ -57,9 +67,14 @@ const OtherDashboard = ({ receipts, selectedYear }: DashboardProps) => {
             <TrendingUp className="h-4 w-4 text-success" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-success">{taxReduction.toLocaleString('fr-FR')} €</div>
+            <div className="text-2xl font-bold text-success">
+              {effectiveReduction.toLocaleString('fr-FR')} €
+            </div>
             <p className="text-xs text-success/80">
-              réduction estimée (75% jusqu'à 2 000 €)
+              {reductionLabel}
+              {isCapped
+                ? ` (estimation : ${estimatedReduction.toLocaleString('fr-FR')} €)`
+                : null}
             </p>
           </CardContent>
         </Card>

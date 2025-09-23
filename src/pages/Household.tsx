@@ -20,6 +20,7 @@ const defaultHousehold: Household = {
   ],
   children: 0,
   otherIncome: 0,
+  withholdingMonthly: 0,
 };
 
 const HouseholdPage = () => {
@@ -150,6 +151,24 @@ const HouseholdPage = () => {
               />
               <p className="text-xs text-muted-foreground">
                 Revenus locatifs, pensions, etc.
+              </p>
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="withholding">Prélèvement à la source mensuel estimé (€)</Label>
+              <Input
+                id="withholding"
+                type="number"
+                placeholder="300"
+                value={form.withholdingMonthly || ""}
+                onChange={(e) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    withholdingMonthly: Number(e.target.value),
+                  }))
+                }
+              />
+              <p className="text-xs text-muted-foreground">
+                Montant prélevé chaque mois par l'administration fiscale.
               </p>
             </div>
             <div className="space-y-1">

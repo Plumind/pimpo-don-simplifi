@@ -14,6 +14,7 @@ export interface Household {
   members: HouseholdMember[];
   children: number;
   otherIncome: number;
+  withholdingMonthly: number;
 }
 
 export interface UserData {
@@ -61,6 +62,8 @@ const ensureHousehold = (value: unknown): Household | null => {
     members,
     children: typeof input.children === "number" ? input.children : 0,
     otherIncome: typeof input.otherIncome === "number" ? input.otherIncome : 0,
+    withholdingMonthly:
+      typeof input.withholdingMonthly === "number" ? input.withholdingMonthly : 0,
   };
 };
 

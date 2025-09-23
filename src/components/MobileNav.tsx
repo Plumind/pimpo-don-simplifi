@@ -1,4 +1,4 @@
-import { Home, Users, HandCoins, HandPlatter, GraduationCap, Leaf } from "lucide-react";
+import { Home, Users, HandCoins, HandPlatter, GraduationCap, Leaf, User } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -17,6 +17,7 @@ const MobileNav = () => {
     { to: "/app/services", icon: HandPlatter, label: "Services" },
     { to: "/app/energie", icon: Leaf, label: "Énergie" },
     { to: "/app/scolarite", icon: GraduationCap, label: "Scolarité" },
+    { to: "/app/profil", icon: User, label: "Profil" },
   ];
 
   const isActive = (path: string) =>
