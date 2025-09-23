@@ -17,6 +17,7 @@ const Header = () => {
     { to: "/app/services", label: "Services à la personne" },
     { to: "/app/energie", label: "Transition énergétique" },
     { to: "/app/scolarite", label: "Scolarité" },
+    { to: "/app/profil", label: "Profil" },
   ];
 
   const isActive = (path: string) =>

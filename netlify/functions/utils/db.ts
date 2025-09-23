@@ -160,6 +160,18 @@ const runMemoryQuery = (text: string, values: unknown[]) => {
         },
       ];
     }
+    case "SELECT password_hash FROM users WHERE id = $1 LIMIT 1": {
+      const id = Number(values[0] ?? 0);
+      const user = memoryState.users.find((entry) => entry.id === id);
+      if (!user) {
+        return [];
+      }
+      return [
+        {
+          password_hash: user.password_hash,
+        },
+      ];
+    }
     case "INSERT INTO sessions (token, user_id, expires_at) VALUES ($1, $2, $3)": {
       const token = String(values[0] ?? "");
       const userId = Number(values[1] ?? 0);
@@ -227,6 +239,15 @@ const runMemoryQuery = (text: string, values: unknown[]) => {
       if (user) {
         user.first_name = firstName;
         user.last_name = lastName;
+      }
+      return [];
+    }
+    case "UPDATE users SET password_hash = $1 WHERE id = $2": {
+      const passwordHash = String(values[0] ?? "");
+      const id = Number(values[1] ?? 0);
+      const user = memoryState.users.find((entry) => entry.id === id);
+      if (user) {
+        user.password_hash = passwordHash;
       }
       return [];
     }

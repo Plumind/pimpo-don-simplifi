@@ -1,4 +1,12 @@
-import { createContext, useContext, useEffect, useMemo, useState, ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  ReactNode,
+} from "react";
 import { clearLocalUserData, mergeLocalDataWithProfile, readLocalUserData } from "@/lib/user-data";
 import { UserProfile } from "@/types/UserData";
 import { fetchJson } from "@/lib/http";
@@ -21,6 +29,7 @@ interface AuthContextValue {
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (data: UserProfile & { password: string }) => Promise<void>;
   signOut: () => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -29,59 +38,75 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const loadSession = async () => {
-      try {
-        const response = await fetchJson<{ user: SessionUser }>("/session");
-        if (response?.user) {
-          setUser(formatUser(response.user));
-        } else {
-          setUser(null);
-        }
-      } catch (error) {
+  const loadInitialSession = useCallback(async () => {
+    try {
+      const response = await fetchJson<{ user: SessionUser }>("/session");
+      if (response?.user) {
+        setUser(formatUser(response.user));
+      } else {
         setUser(null);
-      } finally {
-        setLoading(false);
       }
-    };
-
-    void loadSession();
+    } catch {
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  const signIn = async (email: string, password: string) => {
+  useEffect(() => {
+    void loadInitialSession();
+  }, [loadInitialSession]);
+
+  const refreshUser = useCallback(async () => {
+    try {
+      const response = await fetchJson<{ user: SessionUser }>("/session");
+      if (response?.user) {
+        setUser(formatUser(response.user));
+      } else {
+        setUser(null);
+      }
+    } catch {
+      setUser(null);
+    }
+  }, []);
+
+  const signIn = useCallback(async (email: string, password: string) => {
     const response = await fetchJson<{ user: SessionUser }>("/auth-login", {
       method: "POST",
       body: { email, password },
     });
     setUser(formatUser(response.user));
-  };
+  }, []);
 
-  const signUp = async ({ firstName, lastName, email, password }: UserProfile & { password: string }) => {
-    const localData = readLocalUserData();
-    const profile: UserProfile = {
-      firstName,
-      lastName,
-      email,
-    };
-    const initialData = mergeLocalDataWithProfile(profile, localData);
-    const response = await fetchJson<{ user: SessionUser }>("/auth-register", {
-      method: "POST",
-      body: {
+  const signUp = useCallback(
+    async ({ firstName, lastName, email, password }: UserProfile & { password: string }) => {
+      const localData = readLocalUserData();
+      const profile: UserProfile = {
         firstName,
         lastName,
         email,
-        password,
-        initialData,
-      },
-    });
-    clearLocalUserData();
-    setUser(formatUser(response.user));
-  };
+      };
+      const initialData = mergeLocalDataWithProfile(profile, localData);
+      const response = await fetchJson<{ user: SessionUser }>("/auth-register", {
+        method: "POST",
+        body: {
+          firstName,
+          lastName,
+          email,
+          password,
+          initialData,
+        },
+      });
+      clearLocalUserData();
+      setUser(formatUser(response.user));
+    },
+    []
+  );
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     await fetchJson("/auth-logout", { method: "POST" });
     setUser(null);
-  };
+  }, []);
 
   const value = useMemo(
     () => ({
@@ -90,8 +115,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       signIn,
       signUp,
       signOut,
+      refreshUser,
     }),
-    [user, loading]
+    [user, loading, signIn, signUp, signOut, refreshUser]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

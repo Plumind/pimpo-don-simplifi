@@ -15,6 +15,8 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useUserData } from "@/hooks/useUserData";
 import { uploadReceiptPhoto, removeFromStorage } from "@/lib/storage";
+import { calculateIncomeTax, calculateParts } from "@/lib/tax";
+import { calculateDonationBenefits } from "@/lib/donations";
 import { Loader2 } from "lucide-react";
 
 interface ReceiptUpdateOptions {
@@ -31,9 +33,14 @@ const Donations66 = () => {
   const { data, isLoading, updateSection, isUpdating } = useUserData();
 
   const donations66 = data?.donations66;
+  const donations75 = data?.donations75;
   const receipts = useMemo(
     () => donations66 ?? [],
     [donations66]
+  );
+  const otherReceipts = useMemo(
+    () => donations75 ?? [],
+    [donations75]
   );
 
   const years = useMemo(() => {
@@ -57,6 +64,39 @@ const Donations66 = () => {
       .includes(searchTerm.toLowerCase());
     return matchesYear && matchesSearch;
   });
+  const totalDonations66SelectedYear = filteredReceipts.reduce(
+    (sum, r) => sum + r.amount,
+    0
+  );
+  const totalDonations75SelectedYear = otherReceipts.reduce(
+    (sum, r) => (r.date.startsWith(selectedYear) ? sum + r.amount : sum),
+    0
+  );
+  const household = data?.household ?? null;
+  const appliedReduction = useMemo(() => {
+    if (!household) {
+      return undefined;
+    }
+    const totalIncome =
+      household.members.reduce((s, m) => s + (m.salary || 0), 0) +
+      (household.otherIncome || 0);
+    const adults =
+      household.status === "concubinage"
+        ? 1
+        : Math.max(
+            1,
+            household.members.filter((member) => member.name || member.salary).length
+          );
+    const parts = calculateParts(adults, household.children);
+    const incomeTax = calculateIncomeTax(totalIncome, parts);
+    const summary = calculateDonationBenefits({
+      donations66: totalDonations66SelectedYear,
+      donations75: totalDonations75SelectedYear,
+      totalIncome,
+      incomeTax,
+    });
+    return summary.donation66Applied;
+  }, [household, totalDonations66SelectedYear, totalDonations75SelectedYear]);
 
   const handleAddReceipt = async (
     newReceipt: ReceiptType,
@@ -233,7 +273,11 @@ const Donations66 = () => {
         <h2 className="text-3xl font-bold text-foreground mb-2">Dons 66%</h2>
         <p className="text-muted-foreground">Gérez vos reçus et réductions</p>
       </div>
-      <Dashboard receipts={filteredReceipts} selectedYear={selectedYear} />
+      <Dashboard
+        receipts={filteredReceipts}
+        selectedYear={selectedYear}
+        appliedReduction={appliedReduction}
+      />
 
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <Input

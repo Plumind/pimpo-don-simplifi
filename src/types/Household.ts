@@ -10,4 +10,5 @@ export interface Household {
   members: HouseholdMember[]; // Adults in the household
   children: number; // Number of dependent children
   otherIncome: number; // Other annual household income
+  withholdingMonthly: number; // Estimated monthly withholding tax amount
 }

@@ -6,9 +6,9 @@ import OtherDashboard from "@/components/OtherDashboard";
 import { Receipt } from "@/types/Receipt";
 import { ServiceExpense } from "@/types/ServiceExpense";
 import { Student } from "@/types/Student";
-import { Household } from "@/types/Household";
 import { EnergyExpense } from "@/types/EnergyExpense";
 import { calculateParts, calculateIncomeTax } from "@/lib/tax";
+import { calculateDonationBenefits } from "@/lib/donations";
 import {
   Select,
   SelectContent,
@@ -111,10 +111,8 @@ const Index = () => {
       (household.otherIncome || 0)
     : 0;
   const limit20 = totalIncome * 0.2;
-  const total7UF = Math.min(totalDonations66 + excess75, limit20);
-  const donationCarryForward = Math.max(totalDonations66 + excess75 - limit20, 0);
-  const total7UD = base75;
-  const donationReduction = Math.round(total7UF * 0.66 + total7UD * 0.75);
+  let total7UF = Math.min(totalDonations66 + excess75, limit20);
+  let total7UD = base75;
   const schoolingTotals = filteredStudents.reduce(
     (acc, s) => {
       const map = {
@@ -132,20 +130,27 @@ const Index = () => {
 
   const schoolingReduction = schoolingTotals.total;
   const energyCredit = Math.round((isolationTotal + equipmentTotal) * 0.3);
+  const monthlyWithholding = household?.withholdingMonthly ?? 0;
   let incomeTax = 0;
+  let donationReductionEstimated = Math.round(total7UF * 0.66 + total7UD * 0.75);
   let donationReductionApplied = 0;
+  let donation66Applied = 0;
+  let donation75Applied = 0;
   let schoolingReductionApplied = 0;
   let reductionApplied = 0;
   let serviceCredit = 0;
   let taxAfterDeductions = 0;
-  let finalTax = 0;
+  let netTaxBeforeWithholding = 0;
+  let netBalanceAfterWithholding = 0;
   let totalDeductions = 0;
   let totalRefunds = 0;
   let deductionPercent = 0;
   let creditPercent = 0;
+  let withholdingPercent = 0;
   let payPercent = 0;
   let refundPercent = 0;
   let markerPercent = 0;
+  let annualWithholding = Math.max(monthlyWithholding, 0) * 12;
 
   if (household) {
     const adults =
@@ -157,7 +162,18 @@ const Index = () => {
           );
     const parts = calculateParts(adults, household.children);
     incomeTax = calculateIncomeTax(totalIncome, parts);
-    donationReductionApplied = Math.min(donationReduction, incomeTax);
+    const donationSummary = calculateDonationBenefits({
+      donations66: totalDonations66,
+      donations75: totalDonations75,
+      totalIncome,
+      incomeTax,
+    });
+    donationReductionEstimated = donationSummary.donationReductionEstimated;
+    donationReductionApplied = donationSummary.donationReductionApplied;
+    donation66Applied = donationSummary.donation66Applied;
+    donation75Applied = donationSummary.donation75Applied;
+    total7UF = donationSummary.total7UF;
+    total7UD = donationSummary.total7UD;
     const afterDonations = incomeTax - donationReductionApplied;
     schoolingReductionApplied = Math.min(schoolingReduction, afterDonations);
     reductionApplied = donationReductionApplied + schoolingReductionApplied;
@@ -182,21 +198,40 @@ const Index = () => {
     serviceCredit = Math.round(homeCapped * 0.5 + childTotalCapped * 0.5);
 
     const totalCreditApplied = serviceCredit + energyCredit;
-    finalTax = taxAfterDeductions - totalCreditApplied;
+    netTaxBeforeWithholding = taxAfterDeductions - totalCreditApplied;
+    netBalanceAfterWithholding = netTaxBeforeWithholding - annualWithholding;
 
     totalDeductions = reductionApplied;
     totalRefunds = totalCreditApplied;
-    const maxValue = Math.max(incomeTax, totalDeductions + totalRefunds);
+    const amountToPay = Math.max(netBalanceAfterWithholding, 0);
+    const amountToRefund = Math.max(-netBalanceAfterWithholding, 0);
+    const maxValue = Math.max(
+      incomeTax,
+      totalDeductions + totalRefunds + annualWithholding + amountToPay + amountToRefund
+    );
     deductionPercent = maxValue ? (totalDeductions / maxValue) * 100 : 0;
     creditPercent = maxValue ? (totalRefunds / maxValue) * 100 : 0;
-    payPercent = maxValue
-      ? (Math.max(incomeTax - (totalDeductions + totalRefunds), 0) / maxValue) * 100
-      : 0;
-    refundPercent = maxValue
-      ? (Math.max(totalDeductions + totalRefunds - incomeTax, 0) / maxValue) * 100
-      : 0;
+    withholdingPercent = maxValue ? (annualWithholding / maxValue) * 100 : 0;
+    payPercent = maxValue ? (amountToPay / maxValue) * 100 : 0;
+    refundPercent = maxValue ? (amountToRefund / maxValue) * 100 : 0;
     markerPercent = maxValue ? (incomeTax / maxValue) * 100 : 0;
   }
+
+  const donationReductionCapped =
+    donationReductionApplied > 0 && donationReductionApplied < donationReductionEstimated;
+  const netAfterCreditsLabel =
+    netTaxBeforeWithholding >= 0
+      ? `Impôt net après réductions/crédits : ${netTaxBeforeWithholding.toLocaleString("fr-FR")} €`
+      : `Crédit d'impôt net : ${Math.abs(netTaxBeforeWithholding).toLocaleString("fr-FR")} €`;
+  const withholdingLabel =
+    annualWithholding > 0
+      ? `Prélèvement à la source estimé : ${annualWithholding.toLocaleString("fr-FR")} €` +
+        (monthlyWithholding
+          ? ` (${Math.max(monthlyWithholding, 0).toLocaleString("fr-FR")} €/mois)`
+          : "")
+      : "Prélèvement à la source estimé : 0 €";
+  const donation66AppliedForDisplay = household ? donation66Applied : undefined;
+  const donation75AppliedForDisplay = household ? donation75Applied : undefined;
 
   return (
     <div className="min-h-screen bg-background">
@@ -228,12 +263,13 @@ const Index = () => {
               <CardTitle>Impôt sur le revenu estimé</CardTitle>
               <CardDescription>Année {selectedYear}</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-2">
+            <CardContent className="space-y-3">
               <div className="text-2xl font-bold">
                 {incomeTax.toLocaleString("fr-FR")} €
               </div>
               <div className="text-sm text-muted-foreground">
-                Réduction dons : {donationReductionApplied.toLocaleString("fr-FR")} €
+                {donationReductionCapped ? "Réduction dons plafonnée" : "Réduction dons"} :{" "}
+                {donationReductionApplied.toLocaleString("fr-FR")} €
               </div>
               <div className="text-sm text-muted-foreground">
                 Réduction scolarité : {schoolingReductionApplied.toLocaleString("fr-FR")} €
@@ -250,6 +286,8 @@ const Index = () => {
               <div className="text-sm text-muted-foreground">
                 Total remboursements : {totalRefunds.toLocaleString("fr-FR")} €
               </div>
+              <div className="text-sm text-muted-foreground">{netAfterCreditsLabel}</div>
+              <div className="text-sm text-muted-foreground">{withholdingLabel}</div>
               <div className="relative h-4 w-full bg-gray-200 rounded overflow-hidden">
                 <div className="flex h-full">
                   <div
@@ -260,6 +298,12 @@ const Index = () => {
                     className="bg-white border"
                     style={{ width: `${creditPercent}%` }}
                   />
+                  {withholdingPercent > 0 && (
+                    <div
+                      className="bg-amber-300"
+                      style={{ width: `${withholdingPercent}%` }}
+                    />
+                  )}
                   {payPercent > 0 && (
                     <div
                       className="bg-blue-500"
@@ -278,7 +322,7 @@ const Index = () => {
                   style={{ left: `${markerPercent}%` }}
                 />
               </div>
-              <div className="flex flex-wrap justify-between text-xs text-muted-foreground pt-1">
+              <div className="flex flex-wrap justify-between gap-2 text-xs text-muted-foreground pt-1">
                 <div className="flex items-center gap-1">
                   <span className="w-3 h-3 bg-gray-400 rounded-sm" />
                   <span>Déduction</span>
@@ -288,18 +332,22 @@ const Index = () => {
                   <span>Crédit</span>
                 </div>
                 <div className="flex items-center gap-1">
+                  <span className="w-3 h-3 bg-amber-300 rounded-sm" />
+                  <span>Prélèvement</span>
+                </div>
+                <div className="flex items-center gap-1">
                   <span className="w-3 h-3 bg-blue-500 rounded-sm" />
-                  <span>Impôt dû</span>
+                  <span>Reste à payer</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <span className="w-3 h-3 bg-green-500 rounded-sm" />
                   <span>Remboursement</span>
                 </div>
               </div>
-              <div className="text-sm text-muted-foreground">
-                {finalTax >= 0
-                  ? `Reste à payer : ${finalTax.toLocaleString("fr-FR")} €`
-                  : `Remboursement : ${Math.abs(finalTax).toLocaleString("fr-FR")} €`}
+              <div className="text-base font-semibold text-muted-foreground">
+                {netBalanceAfterWithholding >= 0
+                  ? `Reste à payer après prélèvement : ${netBalanceAfterWithholding.toLocaleString("fr-FR")} €`
+                  : `Remboursement estimé : ${Math.abs(netBalanceAfterWithholding).toLocaleString("fr-FR")} €`}
               </div>
             </CardContent>
           </Card>
@@ -309,13 +357,18 @@ const Index = () => {
           </p>
         )}
 
-        <Dashboard receipts={filteredReceipts} selectedYear={selectedYear} />
+        <Dashboard
+          receipts={filteredReceipts}
+          selectedYear={selectedYear}
+          appliedReduction={donation66AppliedForDisplay}
+        />
         <p className="text-sm text-muted-foreground text-center">
           Dons 66% : {total7UF.toLocaleString("fr-FR")} € → case 7UF
         </p>
         <OtherDashboard
           receipts={filteredOtherReceipts}
           selectedYear={selectedYear}
+          appliedReduction={donation75AppliedForDisplay}
         />
         <p className="text-sm text-muted-foreground text-center">
           Dons 75% : {total7UD.toLocaleString("fr-FR")} € → case 7UD

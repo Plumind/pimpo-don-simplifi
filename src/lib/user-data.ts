@@ -83,6 +83,7 @@ export const ensureHouseholdDefaults = (household: Household | null) => {
   return {
     status: household.status ?? "marie",
     otherIncome: household.otherIncome ?? 0,
+    withholdingMonthly: household.withholdingMonthly ?? 0,
     members: Array.isArray(household.members)
       ? household.members.map((member) => ({
           name: member.name ?? "",
