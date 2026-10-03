@@ -150,7 +150,7 @@ const Index = () => {
   let payPercent = 0;
   let refundPercent = 0;
   let markerPercent = 0;
-  let annualWithholding = Math.max(monthlyWithholding, 0) * 12;
+  const annualWithholding = Math.max(monthlyWithholding, 0) * 12;
 
   if (household) {
     const adults =

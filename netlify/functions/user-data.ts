@@ -1,9 +1,9 @@
-import { ensureTables, sql } from "./utils/db";
+import { sql } from "./utils/db";
 import { getSessionFromEvent } from "./utils/auth";
 import { mergeUserData, normalizeUserData, Profile, UserData } from "./utils/user-data";
-import type { NetlifyEvent } from "./utils/types";
+import { withLambda } from "@netlify/aws-lambda-compat";
 
-const handler = async (event: NetlifyEvent) => {
+const handler = withLambda(async (event) => {
   try {
     if (event.httpMethod !== "GET" && event.httpMethod !== "PATCH") {
       return {
@@ -13,7 +13,6 @@ const handler = async (event: NetlifyEvent) => {
       };
     }
 
-    await ensureTables();
     const session = await getSessionFromEvent(event);
     if (!session) {
       return {
@@ -77,6 +76,6 @@ const handler = async (event: NetlifyEvent) => {
       body: JSON.stringify({ message: "Erreur interne" }),
     };
   }
-};
+});
 
-export { handler };
+export default handler;
