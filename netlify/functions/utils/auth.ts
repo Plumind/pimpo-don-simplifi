@@ -1,6 +1,6 @@
 import { randomUUID } from "crypto";
 import { sql } from "./db";
-import type { NetlifyEvent } from "./types";
+import type { HandlerEvent } from "@netlify/aws-lambda-compat";
 
 const SESSION_COOKIE = "pimpo_session";
 const SESSION_DURATION_DAYS = 30;
@@ -40,7 +40,7 @@ export const getSessionCookie = (token: string, expiresAt: Date) =>
     expires: expiresAt,
   });
 
-export const getSessionFromEvent = async (event: NetlifyEvent) => {
+export const getSessionFromEvent = async (event: HandlerEvent) => {
   const cookies = parseCookies(event.headers.cookie);
   const token = cookies[SESSION_COOKIE];
   if (!token) {

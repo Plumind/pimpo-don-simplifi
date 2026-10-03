@@ -3,7 +3,12 @@
   publish = "dist"
 
 [build.environment]
-  NODE_VERSION = "18"
+  NODE_VERSION = "22"
+
+[dev]
+  framework = "#custom"
+  command = "npm run dev -- --port 8891"
+  targetPort = 8891
 
 [[redirects]]
   from = "/*"

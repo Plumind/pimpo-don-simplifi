@@ -1,10 +1,10 @@
-import { ensureTables, sql } from "./utils/db";
+import { sql } from "./utils/db";
 import { createSession, getSessionCookie } from "./utils/auth";
 import { createInitialUserData, Profile, UserData } from "./utils/user-data";
-import type { NetlifyEvent } from "./utils/types";
+import { withLambda } from "@netlify/aws-lambda-compat";
 import { hashPassword } from "./utils/password";
 
-const handler = async (event: NetlifyEvent) => {
+const handler = withLambda(async (event) => {
   if (event.httpMethod !== "POST") {
     return {
       statusCode: 405,
@@ -14,7 +14,6 @@ const handler = async (event: NetlifyEvent) => {
   }
 
   try {
-    await ensureTables();
     const payload = event.body ? (JSON.parse(event.body) as Record<string, unknown>) : {};
     const firstName = typeof payload.firstName === "string" ? payload.firstName.trim() : "";
     const lastName = typeof payload.lastName === "string" ? payload.lastName.trim() : "";
@@ -22,7 +21,15 @@ const handler = async (event: NetlifyEvent) => {
     const password = typeof payload.password === "string" ? payload.password : "";
     const initialData = payload.initialData as Partial<UserData> | undefined;
 
-    if (!email || !password || password.length < 6) {
+    if (
+      !firstName ||
+      !lastName ||
+      !email ||
+      !email.includes("@") ||
+      !email.includes(".") ||
+      !password ||
+      password.length < 6
+    ) {
       return {
         statusCode: 400,
         headers: { "Content-Type": "application/json" },
@@ -92,6 +99,6 @@ const handler = async (event: NetlifyEvent) => {
       body: JSON.stringify({ message: "Erreur interne" }),
     };
   }
-};
+});
 
-export { handler };
+export default handler;

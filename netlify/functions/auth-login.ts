@@ -1,6 +1,6 @@
-import { ensureTables, sql } from "./utils/db";
+import { sql } from "./utils/db";
 import { createSession, getSessionCookie } from "./utils/auth";
-import type { NetlifyEvent } from "./utils/types";
+import { withLambda } from "@netlify/aws-lambda-compat";
 import { verifyPassword } from "./utils/password";
 
 const unauthorized = () => ({
@@ -9,7 +9,7 @@ const unauthorized = () => ({
   body: JSON.stringify({ message: "Identifiants incorrects" }),
 });
 
-const handler = async (event: NetlifyEvent) => {
+const handler = withLambda(async (event) => {
   if (event.httpMethod !== "POST") {
     return {
       statusCode: 405,
@@ -19,7 +19,6 @@ const handler = async (event: NetlifyEvent) => {
   }
 
   try {
-    await ensureTables();
     const payload = event.body ? (JSON.parse(event.body) as Record<string, unknown>) : {};
     const email = typeof payload.email === "string" ? payload.email.trim().toLowerCase() : "";
     const password = typeof payload.password === "string" ? payload.password : "";
@@ -81,6 +80,6 @@ const handler = async (event: NetlifyEvent) => {
       body: JSON.stringify({ message: "Erreur interne" }),
     };
   }
-};
+});
 
-export { handler };
+export default handler;
